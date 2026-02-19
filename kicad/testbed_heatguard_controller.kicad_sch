@@ -1,0 +1,30 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "afa87942-0be3-4a3a-a834-58997439dea9")
+	(paper "A4")
+	(lib_symbols)
+	(hierarchical_label "Heater"
+		(shape output)
+		(at 88.9 59.69 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "05f46fa4-6124-4124-bbba-d115d7cd7234")
+	)
+	(hierarchical_label "Tref"
+		(shape input)
+		(at 66.04 59.69 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "36dda8cd-40b9-4d61-bd1f-0d693ad3138c")
+	)
+)
