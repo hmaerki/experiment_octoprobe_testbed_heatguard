@@ -960,18 +960,6 @@
 		)
 		(uuid "059b4b70-a568-40b0-b95c-ccbdf392017c")
 	)
-	(text "Inject Tref short"
-		(exclude_from_sim no)
-		(at 136.398 33.02 0)
-		(effects
-			(font
-				(face "FreeSans")
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "0996854f-6741-4984-86a1-7b47a119a722")
-	)
 	(text "Inject sw endless loop"
 		(exclude_from_sim no)
 		(at 106.426 118.618 0)
