@@ -1,8 +1,55 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "name": "testbed_heatguard",
+            "path": "."
+        }        {
+            "name": "octoprobe",
+            "path": "../octoprobe"
+        },
+        {
+            "name": "testbed_showcase",
+            "path": "../testbed_showcase"
+        }
+    ],
+    "settings": {
+        "[python]": {
+            "editor.formatOnSave": true,
+            "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "ruff.enable": true,
+        "ruff.fixAll": true,
+        "ruff.lint.enable": true,
+        "mpremote.srcSubdirectory": "src",
+        "python.testing.pytestArgs": [
+            "-v",
+            "-s",
+            "tests"
+        ],
+        "python.testing.cwd": "${workspaceFolder:testbed_heatguard}",
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true,
+        "search.exclude": {
+            "**/.venv": true
+        },
+        "files.exclude": {
+            "**/.venv": true
+        },
+        "files.watcherExclude": {
+            "**/.git/objects/**": true,
+            "**/.git/subtree-cache/**": true,
+            "**/node_modules/*/**": true
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "charliermarsh.ruff",
+            "njpwerner.autodocstring",
+            "hediet.vscode-drawio",
+            "swyddfa.esbonio",
+            "ms-python.python",
+            "lextudio.restructuredtext",
+            "trond-snekvik.simple-rst"
+        ]
+    }
 }

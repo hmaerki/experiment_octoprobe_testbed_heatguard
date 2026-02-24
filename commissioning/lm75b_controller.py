@@ -5,7 +5,7 @@ SDA: GPIO16
 SCL: GPIO17
 """
 
-from machine import Pin, I2C
+import machine
 import time
 
 
@@ -13,11 +13,11 @@ import time
 TEMP_REG = 0x00
 
 # Initialize I2C (I2C0 with SDA on GPIO16, SCL on GPIO17)
-pin_sda = Pin(16)
-pin_scl = Pin(17)
-i2c = I2C(0, sda=pin_sda, scl=pin_scl, freq=400000)
-# Pin(pin_scl, Pin.OPEN_DRAIN, Pin.PULL_UP)
-# Pin(pin_sda, Pin.OPEN_DRAIN, Pin.PULL_UP)
+pin_sda = machine.Pin("GPIO6")
+pin_scl = machine.Pin("GPIO7")
+i2c = machine.I2C(1, sda=pin_sda, scl=pin_scl, freq=400_000)
+# machine.Pin(pin_scl, machine.Pin.OPEN_DRAIN, machine.Pin.PULL_UP)
+# machine.Pin(pin_sda, machine.Pin.OPEN_DRAIN, machine.Pin.PULL_UP)
 
 
 def scan_i2c():
@@ -35,7 +35,7 @@ def scan_i2c():
     return devices
 
 
-def read_temperature(addr: int):
+def read_temperature(addr: int) -> float:
     """Read temperature from LM75B sensor"""
     # Read 2 bytes from temperature register
     data = i2c.readfrom_mem(addr, TEMP_REG, 2)
@@ -66,7 +66,12 @@ print("\nStarting temperature readings...")
 print("-" * 30)
 
 while True:
-    for addr in (0x4B, 0x4F):
+    for addr in (
+        0x48,
+        0x49,
+        0x4C,
+        0x4D,
+    ):
         try:
             temp = read_temperature(addr=addr)
             print(f"Temperature 0x{addr:02X}: {temp:.3f} °C")
