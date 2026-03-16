@@ -8,6 +8,8 @@
 [schematics](heatguard_v0.2/production_v0.2/schematics_heatguard_v0.2.pdf)
 
 * XIAO: Now smd (was on pins)
+* Now connect to tentacle via soldered 2 row pin connectors
+* while LEDs for inject Tref/Tguard/EEPROM
 
 ## History v0.1
 
