@@ -2421,7 +2421,7 @@
 		(path "/615d40c6-4570-4b57-91c6-4fc53c13eb32")
 		(sheetname "/")
 		(sheetfile "kicad.kicad_sch")
-		(attr through_hole exclude_from_bom)
+		(attr through_hole exclude_from_pos_files exclude_from_bom)
 		(fp_line
 			(start -1.8 -1.8)
 			(end 1.76 -1.8)
