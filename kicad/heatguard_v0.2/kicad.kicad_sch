@@ -6,7 +6,7 @@
 	(paper "A3")
 	(title_block
 		(title "HeatGuard")
-		(date "2026-03-16")
+		(date "2026-03-17")
 		(rev "v0.2")
 		(company "Octoprobe, Hans Maerki")
 		(comment 1 "Released under MIT Open-source License")

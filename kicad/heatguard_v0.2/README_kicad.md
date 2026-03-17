@@ -6,7 +6,9 @@
 
   Fill Symbol Field `JLC Part`
 
-* https://github.com/MitjaNemec/ReplicateLayout
+* kicad-action-scripts
+
+  ViaStiching, https://github.com/jsreynaud/kicad-action-scripts
 
 ## Production
 
@@ -21,6 +23,28 @@ Update in all sheets (`*.kicad_*`)
 ### In schematics - final check
 
 Menu `Inspect -> Electrical Rule Chacker`, button `Run ERC`, No violatons
+
+### In pcb - ViaStiching
+
+* remove
+
+  Select one via (which will select a group) and delete
+
+* stich
+
+  PCB -> Toolbar -> Via Stitching Generator
+
+  | Parameter | Value |
+  | - | - |
+  | Via copper size | 0.5 |
+  | Via drill size | 0.3 |
+  | Via clearance | 0.15 |
+  | Via grid | 10.0 |
+  | Net name | GND |
+  | Pattern | Rectangular |
+  | Checkboxes | Uncheck |
+
+
 
 ### In pcb - final check and final commit
 
