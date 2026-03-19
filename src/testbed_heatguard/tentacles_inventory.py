@@ -9,7 +9,7 @@ TENTACLES_INVENTORY = (
     TentaclesCollector(testbed_name=TESTBED_NAME).add_testbed_instance(
         testbed_instance="ch_hans_1",
         tentacles=[
-            ("de6528b3cb68-3836", HwVersion.V06, "v1.0", tentacle_specs.MCU_RPI_PICO),
+            ("de6528b3cb68-3836", HwVersion.V06, "v1.0", tentacle_specs.MCU_HEADGUARD),
         ],
     )
 ).inventory

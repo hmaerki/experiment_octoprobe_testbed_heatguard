@@ -1,7 +1,7 @@
-import time
+import _thread  # noqa: F401
+import time  # noqa: F401
 
-import machine
-
+import machine  # type: ignore
 
 I2C_ADDRESS_Tguard = 0x48
 I2C_ADDRESS_Tref = 0x49
@@ -9,20 +9,47 @@ I2C_ADDRESS_EEPROM = 0x50
 I2C_ADDRESS_OFFSET_DISCONNECT = 4
 
 
-class Uart:
+class Diag:
     def __init__(self) -> None:
         self._uart = machine.UART(
             0,
             baudrate=9600,
             tx=machine.Pin("GPIO16"),
             rx=machine.Pin("GPIO17"),
+            timeout=100,
         )
+        self._rx_line: bytes = b""
+        self._rx_queue: list[str] = []
+        self._uart.irq(handler=self._irq_handler, trigger=machine.UART.IRQ_RXIDLE)
 
-    def readline(self) -> str:
-        msg = self._uart.read()
-        if msg is not None:
-            return msg.decode()
-        return "-"
+    def _irq_handler(self, uart_obj) -> None:
+        data = uart_obj.read()
+        if data is None:
+            return
+        self._rx_line += data
+        while b"\n" in self._rx_line:
+            line, self._rx_line = self._rx_line.split(b"\n", 1)
+            self._rx_queue.append(line.strip().decode("utf-8", "replace"))
+
+    def get_lines(self, drain: bool = False) -> list[str]:
+        lines = self._rx_queue
+        if drain:
+            self._rx_line: bytes = b""
+            self._rx_queue = []
+        return lines
+
+    def drain(self) -> None:
+        self.get_lines(drain=True)
+
+    def readline(self) -> str | None:
+        while True:
+            msg = self._uart.readline()
+            if msg is not None:
+                return msg.strip().decode("utf-8", "replace")
+            return None
+
+    def writeline(self, line) -> None:
+        self._uart.write(line + "\n")
 
 
 class Inject:
@@ -93,7 +120,7 @@ class SimulationI2C:
         self._mem[0 : len(data_bytes)] = data_bytes
 
 
-uart = Uart()
+diag = Diag()
 inject = Inject()
 simulation_i2c = SimulationI2C()
 

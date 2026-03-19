@@ -1,0 +1,5 @@
+{
+    "board_variant": "RPI_PICO",
+    "url": "https://micropython.org/resources/firmware/RPI_PICO-20251209-v1.27.0.uf2",
+    "micropython_full_version_text": "RPI_PICO;3.4.0; MicroPython v1.27.0 on 2025-12-09;Raspberry Pi Pico with RP2040"
+}

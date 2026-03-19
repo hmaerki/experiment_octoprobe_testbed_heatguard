@@ -21,11 +21,12 @@ mpremote a1 resume
 mpremote a1 cp src/testbed_heatguard/mp_dut_main.py :main.py ; mpremote a1 exec 'import main'
 """
 
-import rp2
-import machine
-import micropython
-import time
 import errno
+import time
+
+import machine  # type: ignore
+import micropython  # type: ignore
+import rp2  # type: ignore
 
 # ab
 micropython.alloc_emergency_exception_buf(100)
@@ -34,6 +35,11 @@ I2C_ADDRESS_Tguard = 0x48
 I2C_ADDRESS_Tref = 0x49
 I2C_ADDRESS_EEPROM = 0x50
 I2C_ADDRESS_OFFSET_DISCONNECT = 4
+
+BOOT_CAUSE = {
+    machine.PWRON_RESET: "PWRON_RESET",
+    machine.WDT_RESET: "WDT_RESET",
+}.get(machine.reset_cause(), "UNKNOWN")
 
 
 def print_error(error_text: str) -> None:
@@ -64,17 +70,30 @@ class Leds:
             pin.value(0)
 
 
-class Uart:
+class Diag:
     def __init__(self) -> None:
         self._uart = machine.UART(
             0,
             baudrate=9600,
             tx=machine.Pin("GPIO0"),
             rx=machine.Pin("GPIO1"),
+            timeout=100,
         )
+
+    def readline(self) -> str | None:
+        if self._uart.any() == 0:
+            return None
+        return self._uart.readline().decode("utf-8", "replace").strip()
 
     def writeline(self, line) -> None:
         self._uart.write(line + "\n")
+
+    def ping_forever(self) -> None:
+        for i in range(1_000_000):
+            msg = f"ping {i}"
+            print(msg)
+            self.writeline(msg)
+            time.sleep(1.0)
 
 
 class I2C:
@@ -103,15 +122,12 @@ class I2C:
         return devices
 
     def read_temperature(self, addr: int) -> float:
-        """Read temperature from LM75B sensor"""
+        """
+        Read temperature from LM75B sensor.
+        Throw an exception if failed.
+        """
         # Read 2 bytes from temperature register
-        try:
-            data = self._i2c.readfrom_mem(addr, self.TEMP_REG, 2)
-        except OSError as e:
-            if e.errno == errno.EIO:
-                print_error("I2C_EIO")
-                return 0.0
-            raise
+        data = self._i2c.readfrom_mem(addr, self.TEMP_REG, 2)
 
         # Convert to temperature (11-bit resolution)
         # Combine the two bytes and shift right by 5 bits
@@ -126,29 +142,49 @@ class I2C:
 
         return temperature
 
-    def read_EEPROM(self, addr: int) -> str:
-        """Read temperature from LM75B sensor"""
-        # Read 2 bytes from temperature register
+    def read_temperature_remote(self, addr: int) -> float:
+        """
+        Read temperature from LM75B sensor.
+        If failed, write 'print_error()'.
+        This is useful for mpremote calls.
+        """
         try:
-            EEPROM_START_BYTE = 0x00
-            EEPROM_SIZE_BYTE = 0x200
-            "2 Kbit = 0x800 bits = 0x200 bytes"
-            data = self._i2c.readfrom_mem(addr, EEPROM_START_BYTE, EEPROM_SIZE_BYTE)
+            return self.read_temperature(addr=addr)
+        except OSError as e:
+            if e.errno == errno.EIO:
+                print_error("I2C_EIO")
+                return 0.0
+            raise
+
+    def read_EEPROM(self, addr: int) -> str:
+        """
+        Read temperature from LM75B sensor
+        Throw an exception if failed.
+        """
+        # Read 2 bytes from temperature register
+        EEPROM_START_BYTE = 0x00
+        EEPROM_SIZE_BYTE = 0x200
+        "2 Kbit = 0x800 bits = 0x200 bytes"
+        data = self._i2c.readfrom_mem(addr, EEPROM_START_BYTE, EEPROM_SIZE_BYTE)
+
+        pos = data.find(b"\xff")
+        if pos >= 0:
+            data = data[0:pos]
+        return data.decode("utf-8", "replace")
+
+    def read_EEPROM_remote(self, addr: int) -> str:
+        """
+        Read temperature from LM75B sensor
+        If failed, write 'print_error()'.
+        This is useful for mpremote calls.
+        """
+        try:
+            return self.read_EEPROM(addr=addr)
         except OSError as e:
             if e.errno == errno.EIO:
                 print_error("I2C_EIO")
                 return ""
             raise
-
-        pos = data.find(b"\xff")
-        if pos >= 0:
-            data = data[0:pos]
-        try:
-            text = data.decode()
-        except UnicodeError:
-            print_error("UnicodeError")
-            return "UnicodeError"
-        return text
 
 
 class HeatGuardState:
@@ -161,6 +197,13 @@ class HeatGuardState:
         self.state: str = self.STATE_INIT
         self.enable: bool = False
         self.leds_state = (leds.ok, leds.failure, leds.guard)
+        self.last_reason: str = "Initial state after power up"
+
+    def sensor_failed(self, sensor: str) -> None:
+        if self.state in (self.STATE_INIT, self.STATE_GUARD):
+            return
+        self.last_reason = f"I2C failed for sensor {sensor}!"
+        self.state = self.STATE_FAILURE
 
     def update_temperatures(self, temperature_Tguard_C: float, diff_C: float) -> None:
         if self.state in (self.STATE_INIT, self.STATE_GUARD):
@@ -169,30 +212,53 @@ class HeatGuardState:
         if temperature_Tguard_C >= 80.0:
             # Guard condition
             if self.state in (self.STATE_OK, self.STATE_FAILURE):
-                msg = f"Too hot! Activate guard: temperature_Tguard_C={temperature_Tguard_C:0.3f}C"
+                self.last_reason = f"Too hot! Activate guard: temperature_Tguard_C={temperature_Tguard_C:0.3f}C"
                 self.state = self.STATE_GUARD
                 return
 
         if diff_C >= 3.0:
             # Failure condition
-            msg = f"Temperature difference too high: diff_C={diff_C:0.3f}C"
+            self.last_reason = f"Temperature difference too high: diff_C={diff_C:0.3f}C"
             self.state = self.STATE_FAILURE
             return
 
         self.state = self.STATE_OK
 
+    def handle_diag(self, diag: Diag) -> None:
+        line_diag = diag.readline()
+        print(f"{line_diag=}")
+        if line_diag is None:
+            return
+        if line_diag == "stimuly state write":
+            self.write_state("response to stimuly")
+            return
+        if line_diag == "ping":
+            diag.writeline("pong 'response to ping'")
+            return
+
     def update(self) -> None:
-        if self.state == self.STATE_INIT:
-            self.state = self.STATE_OK
-        self.enable = self.state == self.STATE_OK
-        leds.enable.value(self.enable)
-        leds.ok.value(self.state == self.STATE_OK)
-        leds.failure.value(self.state == self.STATE_FAILURE)
-        leds.guard.value(self.state == self.STATE_GUARD)
+        def update_inner() -> None:
+            if self.state == self.STATE_INIT:
+                self.state = self.STATE_OK
+            self.enable = self.state == self.STATE_OK
+            leds.enable.value(self.enable)
+            leds.ok.value(self.state == self.STATE_OK)
+            leds.failure.value(self.state == self.STATE_FAILURE)
+            leds.guard.value(self.state == self.STATE_GUARD)
+
+        state_before = (self.enable, self.state)
+        update_inner()
+        state_now = (self.enable, self.state)
+        if state_now != state_before:
+            self.write_state(reason=self.last_reason)
+            self.last_reason = ""
+
+    def write_state(self, reason: str) -> None:
+        diag.writeline(f"probe state {self.state} {self.enable} '{reason}'")
 
 
 i2c = I2C()
-uart = Uart()
+diag = Diag()
 leds = Leds()
 headguard_state = HeatGuardState()
 
@@ -200,13 +266,27 @@ headguard_state = HeatGuardState()
 def main() -> None:
     print("main()")
     leds.set_all(on=True)
-    time.sleep(0.5)
+    time.sleep(0.01)
     leds.set_all(on=False)
 
+    diag.writeline(f"probe boot {BOOT_CAUSE}")
+
     while True:
+        headguard_state.handle_diag(diag=diag)
+        headguard_state.update()
+        time.sleep(1)
         leds.xiao_inverse_blue.toggle()
-        temperature_Tguard_C = i2c.read_temperature(addr=I2C_ADDRESS_Tguard)
-        temperature_Tref_C = i2c.read_temperature(addr=I2C_ADDRESS_Tref)
+        try:
+            temperature_Tguard_C = i2c.read_temperature(addr=I2C_ADDRESS_Tguard)
+        except OSError:
+            headguard_state.sensor_failed("Tguard")
+            continue
+        try:
+            temperature_Tref_C = i2c.read_temperature(addr=I2C_ADDRESS_Tref)
+        except OSError:
+            headguard_state.sensor_failed("Tref")
+            continue
+
         diff_C = abs(temperature_Tguard_C - temperature_Tref_C)
         elements = [
             f"Tguard={temperature_Tguard_C:0.3f}C",
@@ -217,10 +297,9 @@ def main() -> None:
         ]
         print(" ".join(elements))
         headguard_state.update_temperatures(
-            temperature_Tguard_C=temperature_Tguard_C, diff_C=diff_C
+            temperature_Tguard_C=temperature_Tguard_C,
+            diff_C=diff_C,
         )
-        headguard_state.update()
-        time.sleep(1)
 
 
 RUN_MAIN = True

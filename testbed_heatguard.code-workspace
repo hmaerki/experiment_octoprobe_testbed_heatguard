@@ -20,6 +20,13 @@
         "ruff.enable": true,
         "ruff.fixAll": true,
         "ruff.lint.enable": true,
+        // "workbench.editorAssociations": {
+        //     "*.color": "vt100.preview",
+        // },
+        "editor.wordWrap": "off",
+        "[vt100]": {
+            "editor.wordWrap": "off"
+        },
         "mpremote.srcSubdirectory": "src",
         "python.testing.pytestArgs": [
             "-v",
@@ -35,6 +42,9 @@
         "files.exclude": {
             "**/.venv": true
         },
+        "files.associations": {
+            "*.color": "ansi"
+        },
         "files.watcherExclude": {
             "**/.git/objects/**": true,
             "**/.git/subtree-cache/**": true,
@@ -44,12 +54,13 @@
     "extensions": {
         "recommendations": [
             "charliermarsh.ruff",
-            "njpwerner.autodocstring",
             "hediet.vscode-drawio",
-            "swyddfa.esbonio",
-            "ms-python.python",
+            "iliazeus.vscode-ansi",
             "lextudio.restructuredtext",
-            "trond-snekvik.simple-rst"
+            "ms-python.python",
+            "njpwerner.autodocstring",
+            "swyddfa.esbonio",
+            "trond-snekvik.simple-rst",
         ]
     }
 }

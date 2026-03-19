@@ -5,19 +5,21 @@ import logging
 import pathlib
 import shutil
 
-from octoprobe.octoprobe import CtxTestRun
 from octoprobe.usb_tentacle.usb_tentacle import is_serialdelimtied_valid
+from octoprobe.util_firmware_spec import FirmwareDownloadSpec
 from octoprobe.util_pytest import util_logging
 from octoprobe.util_pytest.util_logging import Logs
 
 from testbed_heatguard.constants import DIRECTORY_TESTRESULTS_DEFAULT, EnumTentacleType
 from testbed_heatguard.tentacles_inventory import TENTACLES_INVENTORY
+from testbed_heatguard.util_ctx import CtxTestrunHeatguard
 
 from .tentacle_spec import TentacleHeatguard
 
 logger = logging.getLogger(__file__)
 
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).parent
+FILENAME_DUT_FIRWARE_SPEC = DIRECTORY_OF_THIS_FILE / "util_tentacle_dut_firmware.json"
 
 
 @dataclasses.dataclass
@@ -83,7 +85,7 @@ class Testbed:
         return list_tentacles[0]
 
 
-def get_testbed() -> Testbed:
+def get_testbed(powercycle_tentacles=True) -> Testbed:
     if DIRECTORY_TESTRESULTS_DEFAULT.exists():
         shutil.rmtree(DIRECTORY_TESTRESULTS_DEFAULT, ignore_errors=False)
     DIRECTORY_TESTRESULTS_DEFAULT.mkdir(parents=True, exist_ok=True)
@@ -91,7 +93,9 @@ def get_testbed() -> Testbed:
     util_logging.init_logging()
     logs = util_logging.Logs(DIRECTORY_TESTRESULTS_DEFAULT)
 
-    usb_tentacles = CtxTestRun.session_powercycle_tentacles()
+    usb_tentacles = CtxTestrunHeatguard.session_powercycle_tentacles(
+        poweron=powercycle_tentacles
+    )
     tentacles: list[TentacleHeatguard] = []
     for usb_tentacle in usb_tentacles:
         serial_delimited = usb_tentacle.serial_delimited
@@ -109,6 +113,9 @@ def get_testbed() -> Testbed:
             tentacle_instance=tentacle_instance,
             tentacle_serial_number=serial_delimited,
             usb_tentacle=usb_tentacle,
+        )
+        tentacle.tentacle_state.firmware_spec = FirmwareDownloadSpec.factory2(
+            FILENAME_DUT_FIRWARE_SPEC
         )
         tentacles.append(tentacle)
 

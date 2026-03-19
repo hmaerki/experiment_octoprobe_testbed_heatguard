@@ -6,12 +6,12 @@ import logging
 import pathlib
 import time
 import typing
-from collections.abc import Callable
 
 from octoprobe.lib_mpremote import ExceptionCmdFailed
 from octoprobe.lib_tentacle import TentacleBase
 from octoprobe.util_baseclasses import TentacleSpecBase
 from octoprobe.util_constants import TAG_MCU
+from octoprobe.util_pytest.util_func_logger import func_logger
 
 from .constants import TAG_BOARD, TAG_BUILD_VARIANTS
 
@@ -139,18 +139,22 @@ class TentacleHeatguard(TentacleBase):
         assert isinstance(tentacle_spec_base, TentacleSpecHeatguard)
         return tentacle_spec_base
 
+    @func_logger
     def load_mp_infra(self) -> None:
         """
         Load micropython source into pico_infra.
         """
         self.infra.mp_remote.exec_file(filename=DIRECTORY_OF_THIS_FILE / "mp_infra.py")
 
-    def load_dut_main_and_start(self) -> None:
+    @func_logger
+    def load_dut_main_and_start(self, start_dut_main: bool = True) -> None:
         """
         Copy main.py to the dut.
         Return True if the file has been copied and the dut must be powercycled.
         Return False if the file is already there and equal. No restart is needed.
         """
+        logger.info(f"[COLOR_INFO]load_dut_main_and_start({start_dut_main=})")
+
         src = DIRECTORY_OF_THIS_FILE / "mp_dut_main.py"
         dest = ":main.py"
         if not self.dut.mp_remote.file_equal(src=src, dest=dest):
@@ -164,28 +168,29 @@ class TentacleHeatguard(TentacleBase):
                 )
 
         # follow=False: send the command and return immediately; main() runs forever on the device
-        self.dut.mp_remote.exec_raw("import main", follow=False)
-        # Hack: The following line is required to avoid next 'exec_raw()' to hang.
-        self.dut.mp_remote.state._auto_soft_reset = True
+        if start_dut_main:
+            self.dut.mp_remote.exec_raw("import main", follow=False)
+            # Hack: The following line is required to avoid next 'exec_raw()' to hang.
+            self.dut.mp_remote.state._auto_soft_reset = True
+        else:
+            # Only load 'main.py' but does not start 'main()'.
+            # This is helpful for testing logic without having the main-loop running
+            self.dut.mp_remote.exec_raw("import rp2; rp2.SKIP_MAIN=True; import main")
 
-    def load_dut_main(self) -> None:
-        """
-        Loads main.py but does NOT call main().
-        This method assumes that main.py is present on the device.
-        """
-        ret = self.dut.mp_remote.exec_raw("import rp2; rp2.SKIP_MAIN=True; import main")
-        assert ret == ""
-
+    @func_logger
     def scan_i2c(self) -> list[int]:
         i2c_addresses = self.dut.mp_remote.read_list("main.i2c.scan_i2c()")
         return i2c_addresses
 
+    @func_logger
     def set_inject(self, inject: Inject) -> None:
         dict_inject = dataclasses.asdict(inject)
         self.infra.mp_remote.read_None(f"set_inject({dict_inject!r})")
 
     @contextlib.contextmanager
     def inject(self, inject: Inject) -> typing.Iterator[None]:
+        logger.info(f"[COLOR_INFO]inject({inject=})")
+
         self.set_inject(inject=inject)
         try:
             yield
@@ -198,23 +203,28 @@ class TentacleHeatguard(TentacleBase):
 
         offset_disconnect = I2C_ADDRESS_OFFSET_DISCONNECT if disconnect else 0
         return self.dut.mp_remote.read_float(
-            f"main.i2c.read_temperature(addr={i2c_address + offset_disconnect})"
+            f"main.i2c.read_temperature_remote(addr={i2c_address + offset_disconnect})"
         )
 
+    @func_logger
     def read_Tref_C(self, disconnect: bool = False) -> float:
         return self._read_temperature_C(I2C_ADDRESS_Tref, disconnect=disconnect)
 
+    @func_logger
     def read_Tguard_C(self, disconnect: bool = False) -> float:
         return self._read_temperature_C(I2C_ADDRESS_Tguard, disconnect=disconnect)
 
+    @func_logger
     def set_sim_temperature_C(self, temperature_C: float) -> None:
         """
         Set the temperature of the previously sim_Tref_enable/sim_Tguard_enable.
         """
+        logger.info(f"[COLOR_INFO]set_sim_temperature_C({temperature_C=})")
         self.infra.mp_remote.read_None(
             f"simulation_i2c.set_temperature_C(temperature_C={temperature_C})"
         )
 
+    @func_logger
     def read_EEPROM(self, disconnect: bool = False) -> str:
         assert isinstance(disconnect, bool)
 
@@ -222,4 +232,46 @@ class TentacleHeatguard(TentacleBase):
         if disconnect:
             i2c_address += I2C_ADDRESS_OFFSET_DISCONNECT
 
-        return self.dut.mp_remote.read_str(f"main.i2c.read_EEPROM(addr={i2c_address})")
+        return self.dut.mp_remote.read_str(
+            f"main.i2c.read_EEPROM_remote(addr={i2c_address})"
+        )
+
+    @func_logger
+    def diag_dut_writeline(self, line: str) -> None:
+        logger.info(f"[COLOR_INFO]diag_dut_writeline({line=})")
+        return self.dut.mp_remote.read_None(f"main.diag.writeline({line!r})")
+
+    @func_logger
+    def diag_infra_write(self, line: str) -> None:
+        logger.info(f"[COLOR_INFO]diag_infra_write({line=})")
+        self.infra.mp_remote.read_None(f"diag.writeline({line!r})")
+
+    @func_logger
+    def diag_infra_drain(self) -> None:
+        logger.info("[COLOR_INFO]diag_infra_drain()")
+        return self.infra.mp_remote.read_None("diag.drain()")
+
+    @func_logger
+    def diag_infra_get_lines(self, drain: bool = False) -> list[str]:
+        return self.infra.mp_remote.read_list(f"diag.get_lines(drain={drain})")
+
+    @func_logger
+    def diag_infra_waitfor(self, line: str, timeout_s: float = 2.0) -> None:
+        logger.info(f"[COLOR_INFO]diag_infra_waitfor({line=})")
+
+        begin_s = time.monotonic()
+        while True:
+            time.sleep(0.2)
+            lines = self.diag_infra_get_lines()
+            if len(lines) == 0:
+                continue
+            if lines[-1].startswith(line):
+                return
+            duration_s = time.monotonic() - begin_s
+            if duration_s > timeout_s:
+                elems = [
+                    f"Timeout of {timeout_s:0.1f}s while waiting for: {line}",
+                    "    lines:",
+                    *["    " + line for line in lines],
+                ]
+                raise ValueError("\n".join(elems))

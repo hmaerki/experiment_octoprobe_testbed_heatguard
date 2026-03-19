@@ -1,17 +1,13 @@
 **/__pycache__/
-schematics_kicad/kicad/testbed-backups/*
 docs/_build/**
 testresults/**
 testresults_*/**
-results_*/**
 git_cache/**
 downloads/**
 *.log
 testbed.lock
 **/*\ copy.py
 **/*\ copy\ [0-9]*.py
-src/testbed_micropython/mpstress/testresults*/**
-src/testbed_micropython/mpstress/c/mpremote_c
 **/*-backups/*
 **/fp-info-cache
 kicad/heatguard_v*/production/**

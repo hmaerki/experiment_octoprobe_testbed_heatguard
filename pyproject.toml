@@ -27,8 +27,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "testbed_micropython@git+https://github.com/octoprobe/testbed_micropython@main",
-    # "octoprobe[dev,doc]@git+https://github.com/octoprobe/octoprobe@main",
+    # "testbed_micropython@git+https://github.com/octoprobe/testbed_micropython@main",
+    "octoprobe[dev,doc]@git+https://github.com/octoprobe/octoprobe@main",
     # "mpbuild@git+https://github.com/hmaerki/fork_mpbuild@run_docker_unprivileged",
 ]
 
@@ -38,6 +38,7 @@ Documentation = "https://github.com/octoprobe/octoprobe"
 Repository = "https://github.com/octoprobe/octoprobe"
 
 [project.scripts]
+headguard_labels = "testbed_heatguard.cli_labels:main"
 
 [project.optional-dependencies]
 
