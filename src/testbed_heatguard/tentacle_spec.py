@@ -274,4 +274,4 @@ class TentacleHeatguard(TentacleBase):
                     "    lines:",
                     *["    " + line for line in lines],
                 ]
-                raise ValueError("\n".join(elems))
+                raise TimeoutError("\n".join(elems))

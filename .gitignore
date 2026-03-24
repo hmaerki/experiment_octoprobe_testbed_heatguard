@@ -1,7 +1,9 @@
 **/__pycache__/
-docs/_build/**
-testresults/**
-testresults_*/**
+docs/_build/
+docs/top/
+docs/index_top.rst
+testresults/
+testresults_*/
 git_cache/**
 downloads/**
 *.log

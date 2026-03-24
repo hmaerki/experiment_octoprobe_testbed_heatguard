@@ -57,7 +57,7 @@ intersphinx_mapping = {
     "octoprobe": ("http://docs.octoprobe.org/octoprobe/", None),
     "octohub4": ("http://docs.octoprobe.org/octohub4/", None),
     "tentacle": ("http://docs.octoprobe.org/tentacle/", None),
-    "testbed_heatguard": ("http://docs.octoprobe.org/testbed_heatguard/", None),
+    "testbed_showcase": ("http://docs.octoprobe.org/testbed_showcase/", None),
     "testbed_micropython": ("http://docs.octoprobe.org/testbed_micropython/", None),
     # "usbhubctl": ("http://docs.octoprobe.org/usbhubctl/", None),
 }
@@ -86,7 +86,7 @@ html_context = {
     #     ProjectLink("Octoprobe: Tentacle", "https://www.octoprobe.org/tentacle/"),
     #     ProjectLink("Octoprobe: Octoprobe", "https://www.octoprobe.org/octoprobe/"),
     #     ProjectLink(
-    #         "Octoprobe: testbed_heatguard", "https://www.octoprobe.org/testbed_heatguard/"
+    #         "Octoprobe: testbed_showcase", "https://www.octoprobe.org/testbed_showcase/"
     #     ),
     #     ProjectLink(
     #         "Octoprobe: testbed_micropython",

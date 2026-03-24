@@ -1,5 +1,5 @@
 Specifiation of  `testbed_heatguard`
-===================================
+=======================================
 
 Table of contents
 
