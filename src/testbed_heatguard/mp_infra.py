@@ -119,6 +119,16 @@ class SimulationI2C:
         data_bytes = data_bytes[0 : self.EEPROM_SIZE_BYTE]
         self._mem[0 : len(data_bytes)] = data_bytes
 
+    def get_EEPROM(self) -> str:
+        data_bytes = bytes(self._mem[0 : self.EEPROM_SIZE_BYTE])
+        pos = data_bytes.find(b"\xff")
+        if pos >= 0:
+            data_bytes = data_bytes[0:pos]
+        pos = data_bytes.find(b"\x00")
+        if pos >= 0:
+            data_bytes = data_bytes[0:pos]
+        return data_bytes.decode("utf-8", "replace")
+
 
 diag = Diag()
 inject = Inject()
@@ -167,7 +177,7 @@ def set_inject(dict_inject: dict) -> None:
 
 # Reset
 set_inject(
-    {
+    dict_inject={
         "inject_Tguard_disconnect": False,
         "inject_Tref_disconnect": False,
         "inject_EEPROM_disconnect": False,

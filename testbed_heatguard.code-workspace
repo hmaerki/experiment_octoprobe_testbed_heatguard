@@ -27,7 +27,6 @@
         "[vt100]": {
             "editor.wordWrap": "off"
         },
-        "mpremote.srcSubdirectory": "src",
         "python.testing.pytestArgs": [
             "-v",
             "-s",

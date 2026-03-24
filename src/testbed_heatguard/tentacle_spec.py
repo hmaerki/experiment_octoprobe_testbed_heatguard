@@ -9,7 +9,8 @@ import typing
 
 from octoprobe.lib_mpremote import ExceptionCmdFailed
 from octoprobe.lib_tentacle import TentacleBase
-from octoprobe.util_baseclasses import TentacleSpecBase
+from octoprobe.usb_tentacle.usb_tentacle import UsbTentacle
+from octoprobe.util_baseclasses import TentacleInstance, TentacleSpecBase
 from octoprobe.util_constants import TAG_MCU
 from octoprobe.util_pytest.util_func_logger import func_logger
 
@@ -115,6 +116,20 @@ class Inject:
 
 
 class TentacleHeatguard(TentacleBase):
+    def __init__(
+        self,
+        tentacle_instance: TentacleInstance,
+        tentacle_serial_number: str,
+        usb_tentacle: UsbTentacle,
+    ) -> None:
+        super().__init__(
+            tentacle_instance=tentacle_instance,
+            tentacle_serial_number=tentacle_serial_number,
+            usb_tentacle=usb_tentacle,
+        )
+        self.diag_lines_unprocessed: list[str] = []
+        self.diag_lines_processed: list[str] = []
+
     @property
     @typing.override
     def pytest_id(self) -> str:
@@ -132,7 +147,7 @@ class TentacleHeatguard(TentacleBase):
 
     @property
     def tentacle_spec(self) -> TentacleSpecHeatguard:
-        """
+        """TentacleHeatguard
         Just does typcasting from TentacleSpecBase to TentacleSpecHeatguard
         """
         tentacle_spec_base = self.tentacle_spec_base
@@ -161,7 +176,7 @@ class TentacleHeatguard(TentacleBase):
             # Local file 'src' has changed: copy to device
             self.dut.mp_remote.cp(src=src, dest=dest, multiple=False)
             try:
-                self.dut.mp_remote.exec_raw("import sys; del sys.modules['main']")
+                self.dut.mp_remote.exec_raw("import sys; sys.modules.pop('main', None)")
             except ExceptionCmdFailed as e:
                 logger.debug(
                     f"{self.label}: Failed to remove main.py from the module cache: {e!r}"
@@ -237,6 +252,10 @@ class TentacleHeatguard(TentacleBase):
         )
 
     @func_logger
+    def get_EEPROM_infra_sim(self) -> str:
+        return self.infra.mp_remote.read_str("simulation_i2c.get_EEPROM()")
+
+    @func_logger
     def diag_dut_writeline(self, line: str) -> None:
         logger.info(f"[COLOR_INFO]diag_dut_writeline({line=})")
         return self.dut.mp_remote.read_None(f"main.diag.writeline({line!r})")
@@ -256,22 +275,29 @@ class TentacleHeatguard(TentacleBase):
         return self.infra.mp_remote.read_list(f"diag.get_lines(drain={drain})")
 
     @func_logger
-    def diag_infra_waitfor(self, line: str, timeout_s: float = 2.0) -> None:
-        logger.info(f"[COLOR_INFO]diag_infra_waitfor({line=})")
+    def diag_infra_waitfor(
+        self,
+        expected_line: str,
+        timeout_s: float = 2.0,
+        drain: bool = True,
+    ) -> None:
+        logger.info(f"[COLOR_INFO]diag_infra_waitfor({expected_line=})")
 
         begin_s = time.monotonic()
         while True:
             time.sleep(0.2)
-            lines = self.diag_infra_get_lines()
-            if len(lines) == 0:
-                continue
-            if lines[-1].startswith(line):
-                return
+            lines = self.diag_infra_get_lines(drain=drain)
+            self.diag_lines_unprocessed.extend(lines)
+            while len(self.diag_lines_unprocessed) > 0:
+                line = self.diag_lines_unprocessed.pop(0)
+                self.diag_lines_processed.append(line)
+                if line.startswith(expected_line):
+                    return
             duration_s = time.monotonic() - begin_s
             if duration_s > timeout_s:
                 elems = [
-                    f"Timeout of {timeout_s:0.1f}s while waiting for: {line}",
+                    f"Timeout of {timeout_s:0.1f}s while waiting for: {expected_line}",
                     "    lines:",
-                    *["    " + line for line in lines],
+                    *["    " + line for line in self.diag_lines_processed],
                 ]
                 raise TimeoutError("\n".join(elems))

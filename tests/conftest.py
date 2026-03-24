@@ -37,6 +37,24 @@ _TESTBED_LOCK = TestbedLock()
 break_into_debugger_on_exception(globals())
 
 
+@pytest.fixture
+def dut_power_up(ctx: CtxTestrunHeatguard) -> Iterator[CtxTestrunHeatguard]:
+    """
+    Powers the dut.
+    Waits till the dut is ready, eg 'state OK'.
+    """
+    ctx.set_power_dut(on=True)
+
+    tty = ctx.tentacle.dut.get_tty()
+    logger.info(f"DUT may be connected: mpremote connect {tty}")
+
+    ctx.tentacle.diag_infra_waitfor(
+        "probe state OK True 'Initial state after power up'"
+    )
+
+    yield ctx
+
+
 @fixture(scope="session", autouse=True)
 def ctx(request: pytest.FixtureRequest) -> Iterator[CtxTestrunHeatguard]:
     """

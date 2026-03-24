@@ -47,6 +47,37 @@ def print_error(error_text: str) -> None:
     print("[ERROR]" + repr(error_text))
 
 
+class Watchdog:
+    TIMEOUT_MS = 3_000
+
+    def __init__(self) -> None:
+        self.wdt: machine.WDT | None = None
+
+    def start(self) -> None:
+        self.wdt = machine.WDT(timeout=self.TIMEOUT_MS)
+
+    def feed(self) -> None:
+        if self.wdt is None:
+            return
+
+        self.wdt.feed()
+
+    @staticmethod
+    def stop() -> None:
+        """
+        The watchdog should never be stopped.
+        However, when starting a debug session, the watchdog is unwanted.
+        """
+
+        WATCHDOG_CTRL = 0x40058000
+        "Address for the Watchdog Control Register"
+
+        current_val = machine.mem32[WATCHDOG_CTRL]
+        # Use a bitmask to clear bit 30 (the ENABLE bit)
+        # 0x3FFFFFFF is a mask where all bits are 1 except bit 30
+        machine.mem32[WATCHDOG_CTRL] = current_val & 0x3FFFFFFF
+
+
 class Leds:
     def __init__(self) -> None:
         self.enable = machine.Pin("GPIO26", machine.Pin.OUT)
@@ -158,7 +189,6 @@ class I2C:
 
     def read_EEPROM(self, addr: int) -> str:
         """
-        Read temperature from LM75B sensor
         Throw an exception if failed.
         """
         # Read 2 bytes from temperature register
@@ -174,7 +204,6 @@ class I2C:
 
     def read_EEPROM_remote(self, addr: int) -> str:
         """
-        Read temperature from LM75B sensor
         If failed, write 'print_error()'.
         This is useful for mpremote calls.
         """
@@ -186,6 +215,21 @@ class I2C:
                 return ""
             raise
 
+    def write_EEPROM(self, addr: int, data: str) -> None:
+        """
+        Write data string to EEPROM.
+        Throw an exception if failed.
+        """
+        EEPROM_START_BYTE = 0x00
+        PAGE_SIZE = 16
+        encoded = data.encode("utf-8")
+        offset = 0
+        while offset < len(encoded):
+            chunk = encoded[offset : offset + PAGE_SIZE]
+            self._i2c.writeto_mem(addr, EEPROM_START_BYTE + offset, chunk)
+            time.sleep(0.005)  # 5ms EEPROM write cycle
+            offset += PAGE_SIZE
+
 
 class HeatGuardState:
     STATE_INIT = "INIT"
@@ -193,14 +237,27 @@ class HeatGuardState:
     STATE_FAILURE = "FAILURE"
     STATE_GUARD = "GUARD"
 
+    GUARD_RECOVERY_MS = 60_000
+
     def __init__(self) -> None:
         self.state: str = self.STATE_INIT
         self.enable: bool = False
+        self.before_state = self.state
+        self.before_enable = self.enable
         self.leds_state = (leds.ok, leds.failure, leds.guard)
         self.last_reason: str = "Initial state after power up"
+        self.guard_end_ms: int = time.ticks_ms()  # type: ignore
+
+    def _guard_end_reset(self):
+        self.guard_end_ms: int = time.ticks_add(time.ticks_ms(), self.GUARD_RECOVERY_MS)  # type: ignore
+
+    @property
+    def guard_remaining_ms(self) -> int:
+        return time.ticks_diff(self.guard_end_ms, time.ticks_ms())  # type: ignore
 
     def sensor_failed(self, sensor: str) -> None:
-        if self.state in (self.STATE_INIT, self.STATE_GUARD):
+        self._guard_end_reset()
+        if self.state == (self.STATE_INIT, self.STATE_GUARD):
             return
         self.last_reason = f"I2C failed for sensor {sensor}!"
         self.state = self.STATE_FAILURE
@@ -211,6 +268,7 @@ class HeatGuardState:
 
         if temperature_Tguard_C >= 80.0:
             # Guard condition
+            self._guard_end_reset()
             if self.state in (self.STATE_OK, self.STATE_FAILURE):
                 self.last_reason = f"Too hot! Activate guard: temperature_Tguard_C={temperature_Tguard_C:0.3f}C"
                 self.state = self.STATE_GUARD
@@ -222,49 +280,77 @@ class HeatGuardState:
             self.state = self.STATE_FAILURE
             return
 
+        self.last_reason = ""
         self.state = self.STATE_OK
 
     def handle_diag(self, diag: Diag) -> None:
         line_diag = diag.readline()
-        print(f"{line_diag=}")
         if line_diag is None:
             return
-        if line_diag == "stimuly state write":
-            self.write_state("response to stimuly")
+        self._handle_diag_line(line_diag=line_diag)
+
+    def _handle_diag_line(self, line_diag: str) -> None:
+        assert isinstance(line_diag, str)
+        STIMULUS_HEATGUARD = "stimulus heatguard."
+        if line_diag.startswith(STIMULUS_HEATGUARD):
+            # Example line_diag:
+            # stimulus heatguard.update_temperatures(temperature_Tguard_C=90.0, diff_C=0.0)
+            cmd = line_diag.replace(STIMULUS_HEATGUARD, "heatguard.")
+            eval(cmd, {"heatguard": self})
+            self.update()
             return
+        if line_diag == "inject timeover":
+            self.guard_end_ms: int = time.ticks_ms()  # type: ignore
+            self.update()
+            return
+        if line_diag == "inject endless_loop":
+            # This will force the watchdog to fire
+            while True:
+                pass
         if line_diag == "ping":
             diag.writeline("pong 'response to ping'")
             return
+        raise ValueError(f"line_diag not recognized: {line_diag}")
 
     def update(self) -> None:
-        def update_inner() -> None:
+        def update_state() -> None:
             if self.state == self.STATE_INIT:
                 self.state = self.STATE_OK
+            if self.state == self.STATE_GUARD:
+                if self.guard_remaining_ms < 0:
+                    # After some timeout we recover
+                    self.state = self.STATE_OK
+
             self.enable = self.state == self.STATE_OK
             leds.enable.value(self.enable)
             leds.ok.value(self.state == self.STATE_OK)
             leds.failure.value(self.state == self.STATE_FAILURE)
             leds.guard.value(self.state == self.STATE_GUARD)
 
-        state_before = (self.enable, self.state)
-        update_inner()
-        state_now = (self.enable, self.state)
-        if state_now != state_before:
+        update_state()
+        if (self.enable, self.state) != (self.before_enable, self.before_state):
+            self.before_enable, self.before_state = self.enable, self.state
             self.write_state(reason=self.last_reason)
             self.last_reason = ""
+            if self.state == self.STATE_GUARD:
+                i2c.write_EEPROM(addr=I2C_ADDRESS_EEPROM, data=repr({"state": "GUARD"}))
 
     def write_state(self, reason: str) -> None:
-        diag.writeline(f"probe state {self.state} {self.enable} '{reason}'")
+        msg = f"probe state {self.state} {self.enable} '{reason}'"
+        print(msg)
+        diag.writeline(msg)
 
 
+watchdog = Watchdog()
 i2c = I2C()
 diag = Diag()
 leds = Leds()
-headguard_state = HeatGuardState()
+heatguard = HeatGuardState()
 
 
 def main() -> None:
     print("main()")
+    watchdog.start()
     leds.set_all(on=True)
     time.sleep(0.01)
     leds.set_all(on=False)
@@ -272,19 +358,25 @@ def main() -> None:
     diag.writeline(f"probe boot {BOOT_CAUSE}")
 
     while True:
-        headguard_state.handle_diag(diag=diag)
-        headguard_state.update()
+        heatguard.handle_diag(diag=diag)
+        heatguard.update()
+        watchdog.feed()
         time.sleep(1)
         leds.xiao_inverse_blue.toggle()
         try:
             temperature_Tguard_C = i2c.read_temperature(addr=I2C_ADDRESS_Tguard)
         except OSError:
-            headguard_state.sensor_failed("Tguard")
+            heatguard.sensor_failed("Tguard")
             continue
         try:
             temperature_Tref_C = i2c.read_temperature(addr=I2C_ADDRESS_Tref)
         except OSError:
-            headguard_state.sensor_failed("Tref")
+            heatguard.sensor_failed("Tref")
+            continue
+        try:
+            _ = i2c.read_EEPROM(addr=I2C_ADDRESS_EEPROM)
+        except OSError:
+            heatguard.sensor_failed("eeprom")
             continue
 
         diff_C = abs(temperature_Tguard_C - temperature_Tref_C)
@@ -292,11 +384,12 @@ def main() -> None:
             f"Tguard={temperature_Tguard_C:0.3f}C",
             f"Tref={temperature_Tref_C:0.3f}C",
             f"diff={diff_C:0.3f}",
-            f"state={headguard_state.state}",
-            f"enable={headguard_state.enable}",
+            f"state={heatguard.state}",
+            f"enable={heatguard.enable}",
+            f"guard_remaining_ms={max(-1, heatguard.guard_remaining_ms)}",
         ]
         print(" ".join(elements))
-        headguard_state.update_temperatures(
+        heatguard.update_temperatures(
             temperature_Tguard_C=temperature_Tguard_C,
             diff_C=diff_C,
         )
@@ -306,6 +399,8 @@ RUN_MAIN = True
 try:
     rp2.SKIP_MAIN  # noqa: B018
     RUN_MAIN = False
+    # The watchdog might still be active
+    Watchdog.stop()
 except AttributeError:
     pass
 
