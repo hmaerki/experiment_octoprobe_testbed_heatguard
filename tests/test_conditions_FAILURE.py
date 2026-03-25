@@ -8,7 +8,7 @@ logger = logging.getLogger(__file__)
 
 def test_Tdiff_high(dut_power_up: CtxTestrunHeatguard):
     """
-    Rationale: Behaviour when the temperature difference of both sensor get too high
+    Rationale: Behaviour when the temperature difference of both sensors get too high
     Simulation: i2c Tguard (diff_C too high)
     Expected transitons: INIT -> OK -> FAILURE -> OK
     """

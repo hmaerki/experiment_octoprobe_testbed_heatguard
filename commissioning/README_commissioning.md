@@ -1,20 +1,3 @@
-## Pin assignements
-
-| PICO_INFRA | DUT | Signal |
-| - | - | - |
-| 10 | - | inject_Tref_disconnect |
-| 11 | - | inject_EEPROM_disconnect |
-| 12 | 6 | SDA |
-| 13 | 7 | SCL |
-| 14 | - | inject_Tguard_disconnect |
-| 15 | 2 | inject_T_limit (overwrite Tguard over temperature output) |
-| 16 (tx) | 1 | RX |
-| 17 (rx) | 0 | TX |
-
-## ERRORS
-
-PICO_INFRA 16/17: Correct voltage when disconnected from mezzanine
-PICO_INFRAS 12/13: Always 1 V when disconnected from mezzanine
 
 ## Test XIAO
 

@@ -13,3 +13,4 @@ testbed.lock
 **/*-backups/*
 **/fp-info-cache
 kicad/heatguard_v*/production/**
+**/*.bkp
