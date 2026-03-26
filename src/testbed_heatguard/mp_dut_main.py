@@ -3,10 +3,10 @@ op power --on dut
 
 mpremote devs | head -n 4
 
-mpremote a1 run src/testbed_heatguard//mp_dut_main.py
+mpremote a1 run src/testbed_heatguard/mp_dut_main.py
 
 # Copy the source code
-mpremote a1 cp src/testbed_heatguard//mp_dut_main.py :main.py
+mpremote a1 cp src/testbed_heatguard/mp_dut_main.py :main.py
 
 # Resets the DUT and main.py will restart
 mpremote a1 reset

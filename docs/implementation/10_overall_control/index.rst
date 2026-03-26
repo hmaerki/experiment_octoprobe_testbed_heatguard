@@ -6,17 +6,22 @@ Overall control
    :width: 500px
    :align: center
 
-PC - PICO_INFRA
--------------------------
+**PC - PICO_INFRA**
 
 There is heavy communication calling micropython on PICO_INFRA using mpremote.
 
-PC - DUT
--------------------------
+**PC - DUT**
 
-At test start, mpremote is use to copy `main.py` to the DUT. Now the DUT is powercycled and the test may begin.
+At test start
+
+   * mpremobe verifies the version of the micropython firmware and if needed, updates it using picotool.
+   * mpremote copies `main.py` to the DUT.
+   * Now the DUT is powercycled and the test may begin.
 
 During the test, the is NO communication via mpremote to the DUT!
+
+Test Connector
+-------------------------
 
 .. image:: testconnector.drawio.png
    :width: 500px

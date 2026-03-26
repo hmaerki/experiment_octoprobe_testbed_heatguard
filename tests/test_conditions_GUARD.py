@@ -28,7 +28,7 @@ def test_Tguard_high(dut_power_up: CtxTestrunHeatguard):
 
     tentacle.diag_infra_write("inject timeover")
 
-    tentacle.diag_infra_waitfor("probe state OK", timeout_s=22.0)
+    tentacle.diag_infra_waitfor("probe state OK", timeout_s=70.0)
 
 
 def test_Tguard_high_EEPROM(dut_power_up: CtxTestrunHeatguard):

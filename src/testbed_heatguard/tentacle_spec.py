@@ -168,8 +168,6 @@ class TentacleHeatguard(TentacleBase):
         Return True if the file has been copied and the dut must be powercycled.
         Return False if the file is already there and equal. No restart is needed.
         """
-        logger.info(f"[COLOR_INFO]load_dut_main_and_start({start_dut_main=})")
-
         src = DIRECTORY_OF_THIS_FILE / "mp_dut_main.py"
         dest = ":main.py"
         if not self.dut.mp_remote.file_equal(src=src, dest=dest):
@@ -202,10 +200,9 @@ class TentacleHeatguard(TentacleBase):
         dict_inject = dataclasses.asdict(inject)
         self.infra.mp_remote.read_None(f"set_inject({dict_inject!r})")
 
+    @func_logger
     @contextlib.contextmanager
     def inject(self, inject: Inject) -> typing.Iterator[None]:
-        logger.info(f"[COLOR_INFO]inject({inject=})")
-
         self.set_inject(inject=inject)
         try:
             yield
@@ -234,7 +231,6 @@ class TentacleHeatguard(TentacleBase):
         """
         Set the temperature of the previously sim_Tref_enable/sim_Tguard_enable.
         """
-        logger.info(f"[COLOR_INFO]set_sim_temperature_C({temperature_C=})")
         self.infra.mp_remote.read_None(
             f"simulation_i2c.set_temperature_C(temperature_C={temperature_C})"
         )
@@ -257,17 +253,14 @@ class TentacleHeatguard(TentacleBase):
 
     @func_logger
     def diag_dut_writeline(self, line: str) -> None:
-        logger.info(f"[COLOR_INFO]diag_dut_writeline({line=})")
         return self.dut.mp_remote.read_None(f"main.diag.writeline({line!r})")
 
     @func_logger
     def diag_infra_write(self, line: str) -> None:
-        logger.info(f"[COLOR_INFO]diag_infra_write({line=})")
         self.infra.mp_remote.read_None(f"diag.writeline({line!r})")
 
     @func_logger
     def diag_infra_drain(self) -> None:
-        logger.info("[COLOR_INFO]diag_infra_drain()")
         return self.infra.mp_remote.read_None("diag.drain()")
 
     @func_logger
@@ -281,11 +274,9 @@ class TentacleHeatguard(TentacleBase):
         timeout_s: float = 2.0,
         drain: bool = True,
     ) -> None:
-        logger.info(f"[COLOR_INFO]diag_infra_waitfor({expected_line=})")
-
         begin_s = time.monotonic()
         while True:
-            time.sleep(0.2)
+            time.sleep(0.4)
             lines = self.diag_infra_get_lines(drain=drain)
             self.diag_lines_unprocessed.extend(lines)
             while len(self.diag_lines_unprocessed) > 0:

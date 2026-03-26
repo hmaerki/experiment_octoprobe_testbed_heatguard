@@ -58,7 +58,10 @@ def test_sw_locked_up_watchdog(dut_power_up: CtxTestrunHeatguard):
 
     tentacle.diag_infra_write("inject endless_loop")
 
-    tentacle.diag_infra_waitfor("probe boot WDT_RESET", timeout_s=5.0)
+    tentacle.diag_infra_waitfor(
+        "probe boot WDT_RESET",
+        timeout_s=5.0,
+    )
     tentacle.diag_infra_waitfor("probe state OK True 'Initial state after power up'")
 
 

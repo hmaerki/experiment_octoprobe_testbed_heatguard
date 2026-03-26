@@ -3,13 +3,18 @@
         {
             "name": "testbed_heatguard",
             "path": "."
-        }        {
+        },
+        {
             "name": "octoprobe",
             "path": "../octoprobe"
         },
         {
             "name": "testbed_showcase",
             "path": "../testbed_showcase"
+        },
+        {
+            "name": "testbed_micropython",
+            "path": "../testbed_micropython"
         }
     ],
     "settings": {
