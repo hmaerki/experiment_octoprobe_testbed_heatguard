@@ -8,7 +8,7 @@ from testbed_heatguard.util_ctx import CtxTestrunHeatguard
 logger = logging.getLogger(__file__)
 
 
-def test_Tguard_high(dut_power_up: CtxTestrunHeatguard):
+def test_Tguard_high(dut_power_up: CtxTestrunHeatguard) -> None:
     """
     Rationale: Behaviour when the guard sensor measures a high temperature
     Simulation: i2c Tguard 85C
@@ -31,7 +31,7 @@ def test_Tguard_high(dut_power_up: CtxTestrunHeatguard):
     tentacle.diag_infra_waitfor("probe state OK", timeout_s=70.0)
 
 
-def test_Tguard_high_EEPROM(dut_power_up: CtxTestrunHeatguard):
+def test_Tguard_high_EEPROM(dut_power_up: CtxTestrunHeatguard) -> None:
     """
     Rationale: GUARD state must be written into the EEPROM
     Simulation: i2c EEPROM

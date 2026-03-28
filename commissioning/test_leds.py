@@ -1,6 +1,6 @@
-import machine
 import time
 
+import machine
 
 LED_ENABLE = "GPIO26"
 LED_OK = "GPIO27"

@@ -21,10 +21,11 @@ Wiring:
                            GND
 """
 
+import time
+
+import ds18x20
 import machine
 import onewire
-import ds18x20
-import time
 
 # Configuration
 ONEWIRE_PIN = "GPIO16"

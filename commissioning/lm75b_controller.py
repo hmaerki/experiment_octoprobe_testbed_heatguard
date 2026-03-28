@@ -5,9 +5,9 @@ SDA: GPIO16
 SCL: GPIO17
 """
 
-import machine
 import time
 
+import machine
 
 # Temperature register address
 TEMP_REG = 0x00

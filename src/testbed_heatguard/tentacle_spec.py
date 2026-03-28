@@ -259,7 +259,7 @@ class TentacleHeatguard(TentacleBase):
 
     @func_logger
     def diag_dut_writeline(self, line: str) -> None:
-        return self.dut.mp_remote.read_None(f"main.diag.writeline({line!r})")
+        self.dut.mp_remote.read_None(f"main.diag.writeline({line!r})")
 
     @func_logger
     def diag_infra_write(self, line: str) -> None:
@@ -267,11 +267,12 @@ class TentacleHeatguard(TentacleBase):
 
     @func_logger
     def diag_infra_drain(self) -> None:
-        return self.infra.mp_remote.read_None("diag.drain()")
+        self.infra.mp_remote.read_None("diag.drain()")
 
     @func_logger
     def diag_infra_get_lines(self, drain: bool = False) -> list[str]:
-        return self.infra.mp_remote.read_list(f"diag.get_lines(drain={drain})")
+        list_any = self.infra.mp_remote.read_list(f"diag.get_lines(drain={drain})")
+        return list[str](list_any)
 
     @func_logger
     def diag_infra_waitfor(

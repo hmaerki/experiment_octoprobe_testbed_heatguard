@@ -19,8 +19,9 @@ The implementation handles:
 - Scratchpad memory read/write operations
 """
 
-import machine
 import time
+
+import machine
 from micropython import const
 
 # ============================================================================

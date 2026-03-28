@@ -6,7 +6,7 @@ from testbed_heatguard.util_ctx import CtxTestrunHeatguard
 logger = logging.getLogger(__file__)
 
 
-def test_Tdiff_high(dut_power_up: CtxTestrunHeatguard):
+def test_Tdiff_high(dut_power_up: CtxTestrunHeatguard) -> None:
     """
     Rationale: Behaviour when the temperature difference of both sensors get too high
     Simulation: i2c Tguard (diff_C too high)
@@ -23,7 +23,7 @@ def test_Tdiff_high(dut_power_up: CtxTestrunHeatguard):
     tentacle.diag_infra_waitfor("probe state OK True")
 
 
-def test_Tguard_i2c_error(dut_power_up: CtxTestrunHeatguard):
+def test_Tguard_i2c_error(dut_power_up: CtxTestrunHeatguard) -> None:
     """
     Rationale: Behaviour when a temperature sensor fails
     Simulation: i2c-error Tguard
@@ -40,14 +40,14 @@ def test_Tguard_i2c_error(dut_power_up: CtxTestrunHeatguard):
     tentacle.diag_infra_waitfor("probe state OK True")
 
 
-def test_Tguard_high_eeprom_error_write():
+def test_Tguard_high_eeprom_error_write() -> None:
     """
     Rationale: As test_Tguard_high() but writing EEPROM fails
     Expected result: error state
     """
 
 
-def test_sw_locked_up_watchdog(dut_power_up: CtxTestrunHeatguard):
+def test_sw_locked_up_watchdog(dut_power_up: CtxTestrunHeatguard) -> None:
     """
     Rationale: Behaviour when the software fires
     Stimulus: inject endless loop
@@ -65,14 +65,14 @@ def test_sw_locked_up_watchdog(dut_power_up: CtxTestrunHeatguard):
     tentacle.diag_infra_waitfor("probe state OK True 'Initial state after power up'")
 
 
-def test_reboot_eeprom_guard_state():
+def test_reboot_eeprom_guard_state() -> None:
     """
     Rationale: Power on with EEPROM containing guard state
     Expected result: guard state
     """
 
 
-def test_reboot_eerom_scrambled():
+def test_reboot_eerom_scrambled() -> None:
     """
     Rationale: Power on with EEPROM with scrambled data
     Expected result: guard state

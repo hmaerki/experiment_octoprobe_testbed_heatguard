@@ -85,7 +85,7 @@ class Testbed:
         return list_tentacles[0]
 
 
-def get_testbed(powercycle_tentacles=True) -> Testbed:
+def get_testbed(powercycle_tentacles: bool = True) -> Testbed:
     if DIRECTORY_TESTRESULTS_DEFAULT.exists():
         shutil.rmtree(DIRECTORY_TESTRESULTS_DEFAULT, ignore_errors=False)
     DIRECTORY_TESTRESULTS_DEFAULT.mkdir(parents=True, exist_ok=True)

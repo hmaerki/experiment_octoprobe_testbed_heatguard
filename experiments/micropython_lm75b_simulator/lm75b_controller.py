@@ -5,9 +5,9 @@ SDA: GPIO16
 SCL: GPIO17
 """
 
-from machine import Pin, I2C
 import time
 
+from machine import I2C, Pin
 
 # Temperature register address
 TEMP_REG = 0x00

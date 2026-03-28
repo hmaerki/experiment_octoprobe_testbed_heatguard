@@ -1,5 +1,3 @@
-import _thread
-import time
 
 import machine
 

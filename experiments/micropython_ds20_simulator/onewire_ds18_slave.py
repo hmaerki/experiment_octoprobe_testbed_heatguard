@@ -23,8 +23,9 @@ The implementation handles:
 - Scratchpad memory read/write operations
 """
 
-import machine
 import time
+
+import machine
 import rp2
 from micropython import const
 
@@ -121,14 +122,14 @@ def onewire_sample_byte():
     label("start_byte")
     # Initialize loop counter for 8 bits (0-7)
     set(y, 7)
-    
+
     label("read_bit")
     # 1. Wait for pin to go HIGH (idle state between bit slots)
     wait(1, pin, 0)
-    
+
     # 2. Wait for pin to go LOW (master initiates bit slot)
     wait(0, pin, 0)
-    
+
     # 3. Delay for 30µs to sample point
     # At 1MHz: 1 cycle = 1µs, need 30 cycles total
     # set(x, N) = 1 cycle, loop runs N+1 cycles
@@ -137,16 +138,16 @@ def onewire_sample_byte():
     set(x, 28)
     label("delay")
     jmp(x_dec, "delay")  # Loop 29 times (1 cycle each)
-    
+
     # 4. Sample the pin value (1 bit) and shift into ISR (LSB first)
     in_(pins, 1)
-    
+
     # Decrement bit counter and loop if more bits to read
     jmp(y_dec, "read_bit")
-    
+
     # All 8 bits accumulated in ISR, push byte to FIFO
     push()
-    
+
     # Loop back to read next byte
     jmp("start_byte")
 

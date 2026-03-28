@@ -3,8 +3,9 @@ Simple MicroPython program to simulate an LM75B temperature sensor
 using I2CTarget (I2C slave mode) on Raspberry Pi Pico
 """
 
-import machine
 import time
+
+import machine
 
 LM75B_ADDR = 0x4C
 

@@ -11,10 +11,6 @@ import typing
 from octoprobe.util_baseclasses import TENTACLE_TYPE_MCU
 from octoprobe.util_constants import DIRECTORY_OCTOPROBE_GIT_CACHE
 
-if typing.TYPE_CHECKING:
-    from .tentacle_spec import TentacleHeatguard
-
-
 TAG_BUILD_VARIANTS = "build_variants"
 TAG_BOARD = "board"
 

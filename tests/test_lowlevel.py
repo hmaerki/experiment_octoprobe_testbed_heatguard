@@ -6,7 +6,6 @@ from testbed_heatguard.tentacle_spec import Inject
 
 # @pytest.mark.required_futs(EnumFut.FUT_I2C)
 def test_uart_test(ctx: util_ctx.CtxTestrunHeatguard) -> None:
-    """ """
     tentacle = ctx.tentacle
 
     ctx.set_power_dut(on=True)
@@ -20,7 +19,6 @@ def test_uart_test(ctx: util_ctx.CtxTestrunHeatguard) -> None:
 
 
 def test_read_Tguard(ctx: util_ctx.CtxTestrunHeatguard) -> None:
-    """ """
     tentacle = ctx.tentacle
 
     ctx.set_power_dut(on=True, start_dut_main=False)
@@ -36,7 +34,6 @@ def test_read_Tguard(ctx: util_ctx.CtxTestrunHeatguard) -> None:
 
 
 def test_read_Tguard_sim(ctx: util_ctx.CtxTestrunHeatguard) -> None:
-    """ """
     tentacle = ctx.tentacle
 
     ctx.set_power_dut(on=True, start_dut_main=False)
@@ -56,7 +53,6 @@ def test_read_Tguard_sim(ctx: util_ctx.CtxTestrunHeatguard) -> None:
 
 
 def test_read_EEPROM(ctx: util_ctx.CtxTestrunHeatguard) -> None:
-    """ """
     tentacle = ctx.tentacle
 
     ctx.set_power_dut(on=True, start_dut_main=False)
