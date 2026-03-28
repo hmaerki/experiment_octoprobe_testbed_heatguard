@@ -13,7 +13,7 @@
             "args": [
                 "-v",
                 "-s",
-                "tests/test_simple.py::test_read_Tguard",
+                "tests/test_conditions_FAILURE.py::test_Tdiff_high",
                 // "tests/test_simple.py::test_read_Tguard_sim",
                 // "tests/test_simple.py::test_uart_test",
             ],

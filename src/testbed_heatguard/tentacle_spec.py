@@ -9,6 +9,7 @@ import typing
 
 from octoprobe.lib_mpremote import ExceptionCmdFailed
 from octoprobe.lib_tentacle import TentacleBase
+from octoprobe.lib_tentacle_debugprobe import TentacleDebugprobe
 from octoprobe.usb_tentacle.usb_tentacle import UsbTentacle
 from octoprobe.util_baseclasses import TentacleInstance, TentacleSpecBase
 from octoprobe.util_constants import TAG_MCU
@@ -129,6 +130,11 @@ class TentacleHeatguard(TentacleBase):
         )
         self.diag_lines_unprocessed: list[str] = []
         self.diag_lines_processed: list[str] = []
+
+    @property
+    def debugprobe(self) -> TentacleDebugprobe:
+        assert isinstance(self._probe, TentacleDebugprobe)
+        return self._probe
 
     @property
     @typing.override

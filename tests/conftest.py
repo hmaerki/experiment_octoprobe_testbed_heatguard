@@ -121,6 +121,11 @@ def setup_tentacles(
                 tentacle=ctx.tentacle,
             )
             if ctx.first_time_in_session:
+                ctx.session_debugprobe_power_on(
+                    udev_poller=ctx.udev_poller,
+                    tentacle=ctx.tentacle,
+                    directory_logs=testresults_directory.directory_top,
+                )
                 ctx.session_setup_dut_flash(
                     udev_poller=ctx.udev_poller,
                     tentacle=ctx.tentacle,

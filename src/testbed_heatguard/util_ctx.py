@@ -19,10 +19,7 @@ class CtxTestrunHeatguard:
     The context of a test run
     """
 
-    def __init__(
-        self,
-        connected_tentacles: typing.Sequence[TentacleHeatguard],
-    ) -> None:
+    def __init__(self, connected_tentacles: typing.Sequence[TentacleHeatguard]) -> None:
         assert isinstance(connected_tentacles, list)
 
         self.first_time_in_session = True
@@ -66,6 +63,14 @@ class CtxTestrunHeatguard:
         # tentacle.infra.mcu_infra.active_led(on=False)
         tentacle.infra.switches.dut = False
         tentacle.verify_hw_version()
+
+    def session_debugprobe_power_on(
+        self,
+        udev_poller: UdevPoller,
+        tentacle: TentacleHeatguard,
+        directory_logs: pathlib.Path,
+    ) -> None:
+        tentacle.debugprobe.power_on(udev=udev_poller, directory_logs=directory_logs)
 
     def session_setup_dut_flash(
         self,
