@@ -13,6 +13,7 @@ from octoprobe.lib_tentacle_debugprobe import TentacleDebugprobe
 from octoprobe.usb_tentacle.usb_tentacle import UsbTentacle
 from octoprobe.util_baseclasses import TentacleInstance, TentacleSpecBase
 from octoprobe.util_constants import TAG_MCU
+from octoprobe.util_firmware_spec import FirmwareDownloadSpec
 from octoprobe.util_pytest.util_func_logger import func_logger
 
 from .constants import TAG_BOARD, TAG_BUILD_VARIANTS
@@ -20,6 +21,7 @@ from .constants import TAG_BOARD, TAG_BUILD_VARIANTS
 logger = logging.getLogger(__file__)
 
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).parent
+FILENAME_DUT_FIRWARE_SPEC = DIRECTORY_OF_THIS_FILE / "util_tentacle_dut_firmware.json"
 
 I2C_ADDRESS_Tguard = 0x48
 I2C_ADDRESS_Tref = 0x49
@@ -120,16 +122,37 @@ class TentacleHeatguard(TentacleBase):
     def __init__(
         self,
         tentacle_instance: TentacleInstance,
-        tentacle_serial_number: str,
         usb_tentacle: UsbTentacle,
     ) -> None:
         super().__init__(
             tentacle_instance=tentacle_instance,
-            tentacle_serial_number=tentacle_serial_number,
+            tentacle_serial_number=tentacle_instance.serial,
             usb_tentacle=usb_tentacle,
         )
         self.diag_lines_unprocessed: list[str] = []
         self.diag_lines_processed: list[str] = []
+
+    @staticmethod
+    def factory_usb_tentacle(usb_tentacle: UsbTentacle) -> TentacleHeatguard:
+        """
+        Create a temporary TentacleInfra
+        """
+        assert isinstance(usb_tentacle, UsbTentacle)
+        from .tentacles_inventory import (
+            TENTACLES_INVENTORY,  # pylint: disable=import-outside-toplevel
+        )
+
+        tentacle_instance = TENTACLES_INVENTORY.get_by_serial_delimited(
+            usb_tentacle.serial_delimited
+        )
+        tentacle = TentacleHeatguard(
+            tentacle_instance=tentacle_instance,
+            usb_tentacle=usb_tentacle,
+        )
+        tentacle.tentacle_state.firmware_spec = FirmwareDownloadSpec.factory2(
+            FILENAME_DUT_FIRWARE_SPEC
+        )
+        return tentacle
 
     @property
     def debugprobe(self) -> TentacleDebugprobe:
@@ -168,7 +191,7 @@ class TentacleHeatguard(TentacleBase):
         self.infra.mp_remote.exec_file(filename=DIRECTORY_OF_THIS_FILE / "mp_infra.py")
 
     @func_logger
-    def load_dut_main_and_start(self, start_dut_main: bool = True) -> None:
+    def load_dut_main_and_start_obsolete(self, start_dut_main: bool = True) -> None:
         """
         Copy main.py to the dut.
         Return True if the file has been copied and the dut must be powercycled.
@@ -266,7 +289,7 @@ class TentacleHeatguard(TentacleBase):
         self.infra.mp_remote.read_None(f"diag.writeline({line!r})")
 
     @func_logger
-    def diag_infra_drain(self) -> None:
+    def diag_infra_drain_obsolete(self) -> None:
         self.infra.mp_remote.read_None("diag.drain()")
 
     @func_logger

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import enum
 import pathlib
-import typing
 
 from octoprobe.util_baseclasses import TENTACLE_TYPE_MCU
 from octoprobe.util_constants import DIRECTORY_OCTOPROBE_GIT_CACHE

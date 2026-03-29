@@ -15,7 +15,6 @@ def test_uart_test(ctx: util_ctx.CtxTestrunHeatguard) -> None:
     tentacle.diag_infra_waitfor("pong 'response to ping'")
 
     # mcu.dut.inspection_exit()
-    pass
 
 
 def test_read_Tguard(ctx: util_ctx.CtxTestrunHeatguard) -> None:
@@ -24,8 +23,8 @@ def test_read_Tguard(ctx: util_ctx.CtxTestrunHeatguard) -> None:
     ctx.set_power_dut(on=True, start_dut_main=False)
 
     i2c_addresses = tentacle.scan_i2c()
-    i2c_addresses = [f"0x{addr:02X}" for addr in i2c_addresses]
-    print(f"{i2c_addresses=}")
+    i2c_addresses_text = [f"0x{addr:02X}" for addr in i2c_addresses]
+    print(f"{i2c_addresses_text=}")
 
     Tguard_C = tentacle.read_Tguard_C()
     print(f"{Tguard_C=}")

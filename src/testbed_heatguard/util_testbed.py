@@ -5,13 +5,11 @@ import logging
 import pathlib
 import shutil
 
-from octoprobe.usb_tentacle.usb_tentacle import is_serialdelimtied_valid
-from octoprobe.util_firmware_spec import FirmwareDownloadSpec
+from octoprobe.util_baseclasses import TentacleNotFoundInInventory
 from octoprobe.util_pytest import util_logging
 from octoprobe.util_pytest.util_logging import Logs
 
 from testbed_heatguard.constants import DIRECTORY_TESTRESULTS_DEFAULT, EnumTentacleType
-from testbed_heatguard.tentacles_inventory import TENTACLES_INVENTORY
 from testbed_heatguard.util_ctx import CtxTestrunHeatguard
 
 from .tentacle_spec import TentacleHeatguard
@@ -98,25 +96,12 @@ def get_testbed(powercycle_tentacles: bool = True) -> Testbed:
     )
     tentacles: list[TentacleHeatguard] = []
     for usb_tentacle in usb_tentacles:
-        serial_delimited = usb_tentacle.serial_delimited
-        assert serial_delimited is not None
-        is_serialdelimtied_valid(serial_delimited=serial_delimited)
         try:
-            tentacle_instance = TENTACLES_INVENTORY[serial_delimited]
-        except KeyError:
-            logger.warning(
-                f"Tentacle with serial {serial_delimited} is not specified in TENTACLES_INVENTORY."
-            )
+            tentacle = TentacleHeatguard.factory_usb_tentacle(usb_tentacle=usb_tentacle)
+        except TentacleNotFoundInInventory as e:
+            logger.warning(e)
             continue
 
-        tentacle = TentacleHeatguard(
-            tentacle_instance=tentacle_instance,
-            tentacle_serial_number=serial_delimited,
-            usb_tentacle=usb_tentacle,
-        )
-        tentacle.tentacle_state.firmware_spec = FirmwareDownloadSpec.factory2(
-            FILENAME_DUT_FIRWARE_SPEC
-        )
         tentacles.append(tentacle)
 
     if len(tentacles) == 0:

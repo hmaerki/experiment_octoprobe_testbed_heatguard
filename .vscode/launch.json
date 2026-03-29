@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "heatguard copy-main",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "testbed_heatguard.scripts.heatguard",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "copy-main",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+        {
             "name": "pytest heatguard A",
             "type": "debugpy",
             "request": "launch",

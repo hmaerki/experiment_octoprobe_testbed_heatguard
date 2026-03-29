@@ -22,10 +22,11 @@ class Diag:
         self._rx_queue: list[str] = []
         self._uart.irq(handler=self._irq_handler, trigger=machine.UART.IRQ_RXIDLE)
 
-    def _irq_handler(self, uart_obj) -> None:
+    def _irq_handler(self, uart_obj: machine.UART) -> None:
         data = uart_obj.read()
         if data is None:
             return
+        assert isinstance(data, bytes)
         self._rx_line += data
         while b"\n" in self._rx_line:
             line, self._rx_line = self._rx_line.split(b"\n", 1)
@@ -34,7 +35,7 @@ class Diag:
     def get_lines(self, drain: bool = False) -> list[str]:
         lines = self._rx_queue
         if drain:
-            self._rx_line: bytes = b""
+            self._rx_line = b""
             self._rx_queue = []
         return lines
 
@@ -45,10 +46,11 @@ class Diag:
         while True:
             msg = self._uart.readline()
             if msg is not None:
+                assert isinstance(msg, bytes)
                 return msg.strip().decode("utf-8", "replace")
             return None
 
-    def writeline(self, line) -> None:
+    def writeline(self, line: str) -> None:
         self._uart.write(line + "\n")
 
 
@@ -135,7 +137,7 @@ inject = Inject()
 simulation_i2c = SimulationI2C()
 
 
-def set_inject(dict_inject: dict) -> None:
+def set_inject(dict_inject: dict[str, bool | float | None]) -> None:
     """
     Example dict_inject:
         {
@@ -170,6 +172,7 @@ def set_inject(dict_inject: dict) -> None:
         simulation_i2c.set_temperature_C(sim_temperature_C)
         return
     if sim_EEPROM_data is not None:
+        assert isinstance(sim_EEPROM_data, str)
         simulation_i2c.enable(addr=I2C_ADDRESS_EEPROM)
         simulation_i2c.set_EEPROM(sim_EEPROM_data)
         return

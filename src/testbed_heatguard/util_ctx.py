@@ -123,8 +123,10 @@ class CtxTestrunHeatguard:
             # Power on DUT
             self.tentacle.dut_boot_and_init_mp_remote(udev=self.udev_poller)
             # Drain the diag buffer in the PICO_INFRA as the following line will reboot the DUT!
-            self.tentacle.diag_infra_drain()
+            self.tentacle.diag_infra_drain_obsolete()
             # Load main.py into DUT
-            self.tentacle.load_dut_main_and_start(start_dut_main=start_dut_main)
+            self.tentacle.load_dut_main_and_start_obsolete(
+                start_dut_main=start_dut_main
+            )
         else:
             self.tentacle.infra.power_dut_off_and_wait()

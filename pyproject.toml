@@ -38,7 +38,7 @@ Documentation = "https://github.com/octoprobe/octoprobe"
 Repository = "https://github.com/octoprobe/octoprobe"
 
 [project.scripts]
-headguard_labels = "testbed_heatguard.cli_labels:main"
+heatguard = "testbed_heatguard.scripts.heatguard:app"
 
 [project.optional-dependencies]
 
@@ -73,6 +73,11 @@ warn_unused_ignores = false
 [[tool.mypy.overrides]]
 module = "pallets_sphinx_themes.*"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "mpremote.*"
+ignore_missing_imports = true
+check_untyped_defs = false
 
 [tool.pytest.ini_options]
 pythonpath = "str"
@@ -172,6 +177,7 @@ keep-runtime-typing = true
 [tool.pylint."MESSAGES CONTROL"]
 disable = '''
     broad-exception-caught,
+    invalid-name,
     line-too-long,
     logging-fstring-interpolation,
     missing-class-docstring,

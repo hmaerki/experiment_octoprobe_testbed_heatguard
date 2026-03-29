@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import pathlib
 import time
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 
 import pytest
 from octoprobe import lib_tentacle_infra
@@ -38,7 +38,7 @@ break_into_debugger_on_exception(globals())
 
 
 @pytest.fixture
-def dut_power_up(ctx: CtxTestrunHeatguard) -> Iterator[CtxTestrunHeatguard]:
+def dut_power_up(ctx: CtxTestrunHeatguard) -> Iterator[CtxTestrunHeatguard]:  # pylint: disable=redefined-outer-name
     """
     Powers the dut.
     Waits till the dut is ready, eg 'state OK'.
@@ -168,12 +168,16 @@ def setup_tentacles(
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(
+    item: pytest.Function,
+    call: pytest.CallInfo[None],
+) -> Generator[None, pytest.TestReport, None]:
     """
     This hook is just required for the coloring out the debug log.
     """
     outcome = yield
     report = outcome.get_result()
+    assert isinstance(report, pytest.TestReport)
     if report.when != "call":
         return
 
