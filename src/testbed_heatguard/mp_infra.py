@@ -132,7 +132,7 @@ class SimulationI2C:
         return data_bytes.decode("utf-8", "replace")
 
 
-diag = Diag()
+# diag = Diag()
 inject = Inject()
 simulation_i2c = SimulationI2C()
 

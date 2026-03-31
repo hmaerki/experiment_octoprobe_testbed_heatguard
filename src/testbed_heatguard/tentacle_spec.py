@@ -4,7 +4,6 @@ import contextlib
 import dataclasses
 import logging
 import pathlib
-import time
 import typing
 
 from octoprobe.lib_mpremote import ExceptionCmdFailed
@@ -15,8 +14,10 @@ from octoprobe.util_baseclasses import TentacleInstance, TentacleSpecBase
 from octoprobe.util_constants import TAG_MCU
 from octoprobe.util_firmware_spec import FirmwareDownloadSpec
 from octoprobe.util_pytest.util_func_logger import func_logger
+from octoprobe.util_pyudev import UdevPoller
 
 from .constants import TAG_BOARD, TAG_BUILD_VARIANTS
+from .util_diag import Diag
 
 logger = logging.getLogger(__file__)
 
@@ -126,11 +127,25 @@ class TentacleHeatguard(TentacleBase):
     ) -> None:
         super().__init__(
             tentacle_instance=tentacle_instance,
-            tentacle_serial_number=tentacle_instance.serial,
             usb_tentacle=usb_tentacle,
         )
-        self.diag_lines_unprocessed: list[str] = []
-        self.diag_lines_processed: list[str] = []
+
+        self._diag: Diag | None = None
+
+    @property
+    def diag(self) -> Diag:
+        assert self._diag is not None, "Need to call 'init_diag()' first!"
+        return self._diag
+
+    def init_diag(self, diag: Diag) -> None:
+        assert self._diag is None
+        self._diag = diag
+
+    def stop_diag(self) -> None:
+        if self._diag is None:
+            return
+        self._diag.stop_reader_thread()
+        self._diag = None
 
     @staticmethod
     def factory_usb_tentacle(usb_tentacle: UsbTentacle) -> TentacleHeatguard:
@@ -138,9 +153,8 @@ class TentacleHeatguard(TentacleBase):
         Create a temporary TentacleInfra
         """
         assert isinstance(usb_tentacle, UsbTentacle)
-        from .tentacles_inventory import (
-            TENTACLES_INVENTORY,  # pylint: disable=import-outside-toplevel
-        )
+        # pylint: disable=import-outside-toplevel
+        from .tentacles_inventory import TENTACLES_INVENTORY
 
         tentacle_instance = TENTACLES_INVENTORY.get_by_serial_delimited(
             usb_tentacle.serial_delimited
@@ -163,16 +177,9 @@ class TentacleHeatguard(TentacleBase):
     @typing.override
     def pytest_id(self) -> str:
         """
-        Example: 1831-pico2(RPI_PICO2-RISCV)
-        Example: 1331-daq
+        Example: 1831
         """
-        name = self.label_short
-        if self.is_mcu:
-            if self.tentacle_state.firmware_spec is None:
-                name += "(no-flashing)"
-            else:
-                name += f"({self.tentacle_state.firmware_spec.board_variant.name_normalized})"
-        return name
+        return f"{self.tentacle_serial_short}-{self.tentacle_instance.solder_version}"
 
     @property
     def tentacle_spec(self) -> TentacleSpecHeatguard:
@@ -184,9 +191,31 @@ class TentacleHeatguard(TentacleBase):
         return tentacle_spec_base
 
     @func_logger
+    def set_power_dut(
+        self,
+        on: bool,
+        udev: UdevPoller,
+        start_dut_main: bool = True,
+    ) -> None:
+        logger.info(f"[COLOR_INFO]set_power_dut({on=} {start_dut_main=})")
+
+        if on:
+            # Power on DUT
+            self.infra.power_dut_off_and_wait()
+
+            # Drain the diag buffer
+            self.diag.drain()
+
+            tty = self.dut.dut_mcu.application_mode_power_up(tentacle=self, udev=udev)
+            logger.info(f"{self.dut.label}: Powered up: {tty}")
+
+        else:
+            self.infra.power_dut_off_and_wait()
+
+    @func_logger
     def load_mp_infra(self) -> None:
         """
-        Load micropython source into pico_infra.
+        Load testbed_heatguard specific micropython source into pico_infra.
         """
         self.infra.mp_remote.exec_file(filename=DIRECTORY_OF_THIS_FILE / "mp_infra.py")
 
@@ -213,7 +242,8 @@ class TentacleHeatguard(TentacleBase):
         if start_dut_main:
             self.dut.mp_remote.exec_raw("import main", follow=False)
             # Hack: The following line is required to avoid next 'exec_raw()' to hang.
-            self.dut.mp_remote.state._auto_soft_reset = True
+            self.dut.mp_remote.state._auto_soft_reset = True  # pylint: disable=protected-access
+
         else:
             # Only load 'main.py' but does not start 'main()'.
             # This is helpful for testing logic without having the main-loop running
@@ -279,46 +309,3 @@ class TentacleHeatguard(TentacleBase):
     @func_logger
     def get_EEPROM_infra_sim(self) -> str:
         return self.infra.mp_remote.read_str("simulation_i2c.get_EEPROM()")
-
-    @func_logger
-    def diag_dut_writeline(self, line: str) -> None:
-        self.dut.mp_remote.read_None(f"main.diag.writeline({line!r})")
-
-    @func_logger
-    def diag_infra_write(self, line: str) -> None:
-        self.infra.mp_remote.read_None(f"diag.writeline({line!r})")
-
-    @func_logger
-    def diag_infra_drain_obsolete(self) -> None:
-        self.infra.mp_remote.read_None("diag.drain()")
-
-    @func_logger
-    def diag_infra_get_lines(self, drain: bool = False) -> list[str]:
-        list_any = self.infra.mp_remote.read_list(f"diag.get_lines(drain={drain})")
-        return list[str](list_any)
-
-    @func_logger
-    def diag_infra_waitfor(
-        self,
-        expected_line: str,
-        timeout_s: float = 2.0,
-        drain: bool = True,
-    ) -> None:
-        begin_s = time.monotonic()
-        while True:
-            time.sleep(0.4)
-            lines = self.diag_infra_get_lines(drain=drain)
-            self.diag_lines_unprocessed.extend(lines)
-            while len(self.diag_lines_unprocessed) > 0:
-                line = self.diag_lines_unprocessed.pop(0)
-                self.diag_lines_processed.append(line)
-                if line.startswith(expected_line):
-                    return
-            duration_s = time.monotonic() - begin_s
-            if duration_s > timeout_s:
-                elems = [
-                    f"Timeout of {timeout_s:0.1f}s while waiting for: {expected_line}",
-                    "    lines:",
-                    *["    " + line for line in self.diag_lines_processed],
-                ]
-                raise TimeoutError("\n".join(elems))

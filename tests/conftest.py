@@ -6,7 +6,6 @@ import time
 from collections.abc import Generator, Iterator
 
 import pytest
-from octoprobe import lib_tentacle_infra
 from octoprobe.util_pytest import util_logging
 from octoprobe.util_pytest.util_logging_handler_color import EnumColors
 from octoprobe.util_pytest.util_resultdir import ResultsDir
@@ -14,14 +13,12 @@ from octoprobe.util_pytest.util_vscode import break_into_debugger_on_exception
 from octoprobe.util_testbed_lock import TestbedLock
 from pytest import fixture
 
-from testbed_heatguard import util_ctx
 from testbed_heatguard.constants import (
     DIRECTORY_TESTRESULTS_DEFAULT,
-    EnumFut,
     FILENAME_TESTBED_LOCK,
 )
-from testbed_heatguard.util_ctx import CtxTestrunHeatguard
-from testbed_heatguard.util_testbed import Testbed, get_testbed
+from testbed_heatguard.tentacle_spec import TentacleHeatguard
+from testbed_heatguard.util_testbed import Testbed
 
 logger = logging.getLogger(__file__)
 
@@ -38,51 +35,46 @@ break_into_debugger_on_exception(globals())
 
 
 @pytest.fixture
-def dut_power_up(ctx: CtxTestrunHeatguard) -> Iterator[CtxTestrunHeatguard]:  # pylint: disable=redefined-outer-name
+def dut_power_up(tentacle: TentacleHeatguard) -> Iterator[TentacleHeatguard]:  # pylint: disable=redefined-outer-name
     """
     Powers the dut.
     Waits till the dut is ready, eg 'state OK'.
     """
-    ctx.set_power_dut(on=True)
+    assert TESTBED is not None
 
-    tty = ctx.tentacle.dut.get_tty()
-    logger.info(f"DUT may be connected: mpremote connect {tty}")
+    tentacle.set_power_dut(on=True, udev=TESTBED.udev)
 
-    ctx.tentacle.diag_infra_waitfor(
-        "probe state OK True 'Initial state after power up'"
-    )
+    tentacle.diag.waitfor("probe state OK True 'Initial state after power up'")
 
-    yield ctx
+    yield tentacle
 
 
-@fixture(scope="session", autouse=True)
-def ctx(request: pytest.FixtureRequest) -> Iterator[CtxTestrunHeatguard]:
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """
-    Setup and teardown octoprobe and all connected tentacles.
+    This is a pytest hook https://docs.pytest.org/en/7.1.x/reference/reference.html?highlight=pytest_generate_tests#std-hook-pytest_generate_tests
 
-    Now we loop over all tests an return for every test a `CtxTestrunHeatguard` structure.
-    Using this structure, the test find there tentacles, git-repos etc.
+    Give a test function like 'test_i2c()' in 'metafunc', this function will create test calls for possible combinations of tentacles and firmware versions.
+
+    Calls `metafunc.parametrize` which defines the tests that have been be collected.
+
+    :param metafunc: See https://docs.pytest.org/en/7.1.x/reference/reference.html#metafunc
+    :type metafunc: pytest.Metafunc
     """
     assert TESTBED is not None
 
-    # To be removed when flakyness testing is resolved
-    lib_tentacle_infra.ENABLE_DUT_POWER_OFF_TIME_MIN = False  # type: ignore
+    if "tentacle" in metafunc.fixturenames:
+        if len(TESTBED.tentacles) == 0:
+            msg = "Not tentacles connected"
+            logger.error(msg)
+            raise ValueError(msg)
 
-    _ctx = util_ctx.CtxTestrunHeatguard(connected_tentacles=TESTBED.tentacles)
-
-    assert _ctx.tentacle.is_mcu
-
-    # _testrun.session_powercycle_tentacles()
-
-    yield _ctx
-
-    _ctx.session_teardown()
+        metafunc.parametrize("tentacle", TESTBED.tentacles, ids=lambda t: t.pytest_id)
 
 
 @fixture(scope="function", autouse=True)
 def setup_tentacles(
     request: pytest.FixtureRequest,
-    ctx: CtxTestrunHeatguard,  # pylint: disable=W0621:redefined-outer-name
+    tentacle: TentacleHeatguard,  # pylint: disable=W0621:redefined-outer-name
     testresults_directory: ResultsDir,  # pylint: disable=W0621:redefined-outer-name
 ) -> Iterator[None]:
     """
@@ -103,6 +95,8 @@ def setup_tentacles(
     :param testrun: The structure created by `testrun()`
     :type testrun: CtxTestrunHeatguard
     """
+    assert TESTBED is not None
+
     with util_logging.Logs(testresults_directory.directory_test):
         begin_s = time.monotonic()
 
@@ -115,27 +109,7 @@ def setup_tentacles(
             logger.info(
                 f"TEST SETUP {duration_text(0.0)} {testresults_directory.test_nodeid}"
             )
-            ctx.tentacle.infra.load_base_code_if_needed()
-            ctx.function_setup_infra(
-                udev_poller=ctx.udev_poller,
-                tentacle=ctx.tentacle,
-            )
-            if ctx.first_time_in_session:
-                ctx.session_debugprobe_power_on(
-                    udev_poller=ctx.udev_poller,
-                    tentacle=ctx.tentacle,
-                    directory_logs=testresults_directory.directory_top,
-                )
-                ctx.session_setup_dut_flash(
-                    udev_poller=ctx.udev_poller,
-                    tentacle=ctx.tentacle,
-                    directory_logs=testresults_directory.directory_top,
-                )
-            ctx.tentacle.load_mp_infra()
-            ctx.tentacle.set_relays_by_FUT(
-                fut=EnumFut.FUT_MCU_ONLY,
-                open_others=True,
-            )
+            TESTBED.function_setup(tentacle=tentacle)
             logger.info(
                 f"[COLOR_INFO]TEST BEGIN {duration_text()} {testresults_directory.test_nodeid}"
             )
@@ -158,13 +132,12 @@ def setup_tentacles(
                 f"{color_outcome}TEST TEARDOWN {duration_text()} {testresults_directory.test_nodeid}"
             )
             try:
-                ctx.function_teardown(active_tentacles=[ctx.tentacle])
+                TESTBED.function_teardown(tentacle=tentacle)
             except Exception as e:
                 logger.exception(e)
             logger.info(
                 f"TEST END {duration_text()} {testresults_directory.test_nodeid}"
             )
-            ctx.first_time_in_session = False
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -214,11 +187,11 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
     global TESTBED  # pylint: disable=W0603:global-statement
     assert TESTBED is None
-    TESTBED = get_testbed()
+    TESTBED = Testbed.factory()
+    TESTBED.session_setup()
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:
     assert TESTBED is not None
-    TESTBED.close()
-
+    TESTBED.session_teardown()
     _TESTBED_LOCK.unlink()

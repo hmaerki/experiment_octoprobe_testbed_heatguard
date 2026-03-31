@@ -30,8 +30,8 @@ Run pytest with text output and verbose on a specific test
     INFO     [COLOR_INFO]TEST BEGIN  1s tests/test_conditions_FAILURE.py::test_Tdiff_high
     INFO     [COLOR_TEST_STATEMENT]conftest.py:46 set_power_dut(on=True, start_dut_main=True)  
     ...
-    INFO     [COLOR_TEST_STATEMENT]test_conditions_FAILURE.py:23 diag_infra_waitfor(expected_line='probe state OK True', timeout_s=2.0, drain=True)  
-    INFO     [COLOR_INFO]diag_infra_waitfor(expected_line='probe state OK True')
+    INFO     [COLOR_TEST_STATEMENT]test_conditions_FAILURE.py:23 diag_waitfor(expected_line='probe state OK True', timeout_s=2.0, drain=True)  
+    INFO     [COLOR_INFO]diag_waitfor(expected_line='probe state OK True')
     INFO     [COLOR_TEST_STATEMENT]tentacle_spec.py:289 diag_infra_get_lines(drain=True)  
     PASSEDINFO     [COLOR_SUCCESS]TEST TEARDOWN  5s tests/test_conditions_FAILURE.py::test_Tdiff_high
     INFO     TEST END  5s tests/test_conditions_FAILURE.py::test_Tdiff_high

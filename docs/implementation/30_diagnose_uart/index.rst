@@ -37,7 +37,7 @@ This is how one may wait for a expected line:
 
 .. code-block:: python
 
-        tentacle.diag_infra_waitfor(
+        dut_power_up.diag.waitfor(
             "probe state GUARD False 'Too hot! Activate guard: temperature_Tguard_C=85.000C'",
             timeout_=10.0
         )

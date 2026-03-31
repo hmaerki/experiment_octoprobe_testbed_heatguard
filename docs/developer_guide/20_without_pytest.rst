@@ -34,13 +34,3 @@ Run main.py directly from mpremote
     # Run main from memory and observe output
     mpremote a1 run src/testbed_heatguard/mp_dut_main.py
 
-Power on DUT but in programming mode and flash micropython
-
-.. code-block:: bash
-
-    op power --off dut; op power --on relay1; sleep 1;op power --on dut; sleep 1; op power --off relay1
-
-    cd /media/$USER/RPI-RP2
-    wget https://micropython.org/resources/firmware/RPI_PICO-20251209-v1.27.0.uf2
-
-This corresponds to src/testbed_heatguard/util_ctx.py: `tentacle.flash_dut()`.

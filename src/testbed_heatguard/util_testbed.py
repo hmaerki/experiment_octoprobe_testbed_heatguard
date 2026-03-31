@@ -1,112 +1,119 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
 import pathlib
 import shutil
 
-from octoprobe.util_baseclasses import TentacleNotFoundInInventory
+from octoprobe.usb_tentacle.usb_tentacle import UsbTentacles
+from octoprobe.util_baseclasses import (
+    TentacleNotFoundInInventory,
+)
 from octoprobe.util_pytest import util_logging
 from octoprobe.util_pytest.util_logging import Logs
+from octoprobe.util_pyudev import UdevPoller
 
-from testbed_heatguard.constants import DIRECTORY_TESTRESULTS_DEFAULT, EnumTentacleType
-from testbed_heatguard.util_ctx import CtxTestrunHeatguard
-
+from .constants import DIRECTORY_TESTRESULTS_DEFAULT, EnumFut
 from .tentacle_spec import TentacleHeatguard
+from .util_diag import Diag
 
 logger = logging.getLogger(__file__)
 
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).parent
-FILENAME_DUT_FIRWARE_SPEC = DIRECTORY_OF_THIS_FILE / "util_tentacle_dut_firmware.json"
 
 
-@dataclasses.dataclass
 class Testbed:
     """
     A minimal testbed just contains tentacles.
     However, it might also include usb-hubs, wlan-accesspoints, etc.
     """
 
-    workspace: str
-    tentacles: list[TentacleHeatguard]
-    logs: Logs
-
-    def __post_init__(self) -> None:
-        assert isinstance(self.tentacles, list)
-        assert isinstance(self.logs, Logs)
-        for tentacle in self.tentacles:
+    def __init__(
+        self,
+        tentacles: list[TentacleHeatguard],
+        logs: Logs,
+    ) -> None:
+        assert isinstance(tentacles, list)
+        assert isinstance(logs, Logs)
+        for tentacle in tentacles:
             assert isinstance(tentacle, TentacleHeatguard)
 
-    def close(self) -> None:
-        self.logs.close()
+        self.tentacles = tentacles
+        self.logs = logs
+        self.udev = UdevPoller()
 
     @property
     def description_short(self) -> str:
         return TentacleHeatguard.tentacles_description_short(tentacles=self.tentacles)
 
-    def get_tentacle(
-        self, tentacle_type: EnumTentacleType | None = None, serial: str | None = None
-    ) -> TentacleHeatguard:
-        assert isinstance(tentacle_type, EnumTentacleType | None)
-        assert isinstance(serial, str | None)
-
-        list_tentacles: list[TentacleHeatguard] = []
+    def session_setup(self) -> None:
         for tentacle in self.tentacles:
-            if tentacle_type is not None:
-                if tentacle_type != tentacle.tentacle_spec_base.tentacle_type:
-                    continue
-            if serial is not None:
-                if serial != tentacle.tentacle_serial_number:
-                    continue
-            list_tentacles.append(tentacle)
+            tentacle.infra.load_base_code_if_needed()
+            tentacle.infra.setup_infra(udev=self.udev)
+            tentacle.verify_hw_version()
+            tentacle.switches.dut = False
+            tentacle.switches.proberun = False
+            tentacle.switches.probeboot = True
+            tentacle.switches.led_error = False
 
-        line_criterial = f"Criteria tentacle_type='{tentacle_type}', serial='{serial}'."
+            tentacle.debugprobe.power_on(udev=self.udev)
+            tentacle.init_diag(Diag(tentacle.debugprobe.tty))
 
-        if len(list_tentacles) == 0:
-            lines1: list[str] = [
-                "No tentacles found.",
-                line_criterial,
-                "These tenacles are configured:",
-                self.description_short,
-            ]
-            raise ValueError("\n".join(lines1))
+            tentacle.load_mp_infra()
 
-        if len(list_tentacles) > 1:
-            lines2: list[str] = [
-                f"{len(list_tentacles)} tentacles match. Please specify serial.",
-                line_criterial,
-                "These tenacles are configured and already selected:",
-                TentacleHeatguard.tentacles_description_short(tentacles=list_tentacles),
-            ]
-            raise ValueError("\n".join(lines2))
+    def session_teardown(self) -> None:
+        for tentacle in self.tentacles:
+            tentacle.stop_diag()
+            tentacle.infra.mp_remote_close()
 
-        return list_tentacles[0]
+        self.udev.close()
+        self.logs.close()
 
+    def function_setup(self, tentacle: TentacleHeatguard) -> None:
+        tentacle.switches.led_active = True
 
-def get_testbed(powercycle_tentacles: bool = True) -> Testbed:
-    if DIRECTORY_TESTRESULTS_DEFAULT.exists():
-        shutil.rmtree(DIRECTORY_TESTRESULTS_DEFAULT, ignore_errors=False)
-    DIRECTORY_TESTRESULTS_DEFAULT.mkdir(parents=True, exist_ok=True)
+        tentacle.set_relays_by_FUT(
+            fut=EnumFut.FUT_MCU_ONLY,
+            open_others=True,
+        )
 
-    util_logging.init_logging()
-    logs = util_logging.Logs(DIRECTORY_TESTRESULTS_DEFAULT)
-
-    usb_tentacles = CtxTestrunHeatguard.session_powercycle_tentacles(
-        poweron=powercycle_tentacles
-    )
-    tentacles: list[TentacleHeatguard] = []
-    for usb_tentacle in usb_tentacles:
+    def function_teardown(self, tentacle: TentacleHeatguard) -> None:
         try:
-            tentacle = TentacleHeatguard.factory_usb_tentacle(usb_tentacle=usb_tentacle)
-        except TentacleNotFoundInInventory as e:
-            logger.warning(e)
-            continue
+            tentacle.dut.mp_remote_close()
+            tentacle.switches.led_active = False
+            tentacle.switches.led_error = False
 
-        tentacles.append(tentacle)
+        except Exception as e:
+            logger.error(e)
 
-    if len(tentacles) == 0:
-        raise ValueError("No tentacles are connected!")
+    @staticmethod
+    def factory(powercycle_tentacles: bool = True) -> Testbed:
+        # pylint: disable=import-outside-toplevel
+        from octoprobe import lib_tentacle_infra
 
-    return Testbed(
-        workspace="based-on-connected-boards", tentacles=tentacles, logs=logs
-    )
+        lib_tentacle_infra.DUT_POWER_OFF_TIME_MIN_S = 0.0  # type: ignore
+
+        if DIRECTORY_TESTRESULTS_DEFAULT.exists():
+            shutil.rmtree(DIRECTORY_TESTRESULTS_DEFAULT, ignore_errors=False)
+        DIRECTORY_TESTRESULTS_DEFAULT.mkdir(parents=True, exist_ok=True)
+
+        util_logging.init_logging()
+        logs = util_logging.Logs(DIRECTORY_TESTRESULTS_DEFAULT)
+
+        # We have to reset the power for all pico-infra to become visible
+        usb_tentacles = UsbTentacles.query(poweron=powercycle_tentacles)
+        tentacles: list[TentacleHeatguard] = []
+        for usb_tentacle in usb_tentacles:
+            try:
+                tentacle = TentacleHeatguard.factory_usb_tentacle(
+                    usb_tentacle=usb_tentacle
+                )
+            except TentacleNotFoundInInventory as e:
+                logger.warning(e)
+                continue
+
+            tentacles.append(tentacle)
+
+        if len(tentacles) == 0:
+            raise ValueError("No tentacles are connected!")
+
+        return Testbed(tentacles=tentacles, logs=logs)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import pathlib
 import typing
 
 import typer
@@ -42,7 +43,7 @@ def labels() -> None:
 
 
 @app.command(help="Copy main.py to DUT.")
-def copy_main() -> None:
+def dut_copy_main() -> None:
     with UdevPoller() as udev:
         poweron = True
         for usb_tentacle in iter_usb_tentacles(poweron=poweron, serials=None):
@@ -62,6 +63,26 @@ def copy_main() -> None:
             tentacle.dut.mp_remote.exec_raw(
                 cmd="import machine; machine.reset()",
                 follow=False,
+            )
+
+
+@app.command(help="Flash micropython to DUT.")
+def dut_flash() -> None:
+    with UdevPoller() as udev:
+        poweron = True
+        for usb_tentacle in iter_usb_tentacles(poweron=poweron, serials=None):
+            tentacle = tentacle_spec.TentacleHeatguard.factory_usb_tentacle(
+                usb_tentacle=usb_tentacle
+            )
+            try:
+                tentacle.infra.load_base_code_if_needed()
+            except (TransportError, OctoprobeAppExitException):
+                continue
+
+            tentacle.flash_dut(
+                udev=udev,
+                firmware_spec=tentacle.tentacle_state.firmware_spec,
+                directory_logs=pathlib.Path("/tmp/heatguard"),
             )
 
 

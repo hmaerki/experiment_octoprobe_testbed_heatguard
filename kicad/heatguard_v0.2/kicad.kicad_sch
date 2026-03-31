@@ -3238,6 +3238,16 @@
 		)
 		(uuid "7c5247d3-226a-4aab-b277-79496d1ff06e")
 	)
+	(text "GPIO_PROBE_4 (uart tx)"
+		(exclude_from_sim no)
+		(at 71.12 267.97 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "81e14693-f1f1-4fd5-9ace-7903b8254066")
+	)
 	(text "Jumper: I2c controller simulator"
 		(exclude_from_sim no)
 		(at 60.96 85.852 0)
@@ -3249,6 +3259,16 @@
 			)
 		)
 		(uuid "9613a9df-457b-42f2-b439-45b792c4e24c")
+	)
+	(text "GPIO_PROBE_5 (uart rx)"
+		(exclude_from_sim no)
+		(at 71.12 265.43 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "a0fa5a8e-5572-4ead-8202-5e360ca9ab97")
 	)
 	(text "pico_infra: gpio"
 		(exclude_from_sim no)

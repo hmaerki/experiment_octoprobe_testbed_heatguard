@@ -105,7 +105,7 @@ class Diag:
     def __init__(self) -> None:
         self._uart = machine.UART(
             0,
-            baudrate=9600,
+            baudrate=115200,
             tx=machine.Pin("GPIO0"),
             rx=machine.Pin("GPIO1"),
             timeout=100,
@@ -394,6 +394,7 @@ def main() -> None:
             f"guard_remaining_ms={max(-1, heatguard.guard_remaining_ms)}",
         ]
         print(" ".join(elements))
+        diag.writeline(" ".join(elements))
         heatguard.update_temperatures(
             temperature_Tguard_C=temperature_Tguard_C,
             diff_C=diff_C,

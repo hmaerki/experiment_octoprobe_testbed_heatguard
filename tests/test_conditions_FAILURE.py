@@ -1,43 +1,40 @@
 import logging
 
-from testbed_heatguard.tentacle_spec import Inject
-from testbed_heatguard.util_ctx import CtxTestrunHeatguard
+from testbed_heatguard.tentacle_spec import Inject, TentacleHeatguard
 
 logger = logging.getLogger(__file__)
 
 
-def test_Tdiff_high(dut_power_up: CtxTestrunHeatguard) -> None:
+def test_Tdiff_high(dut_power_up: TentacleHeatguard) -> None:
     """
     Rationale: Behaviour when the temperature difference of both sensors get too high
     Simulation: i2c Tguard (diff_C too high)
     Expected transitons: INIT -> OK -> FAILURE -> OK
     """
-    tentacle = dut_power_up.tentacle
-
     # disconnect Tguard and simulate 50C
-    with tentacle.inject(Inject(inject_Tguard_disconnect=True, sim_temperature_C=50.0)):
-        tentacle.diag_infra_waitfor(
+    with dut_power_up.inject(
+        Inject(inject_Tguard_disconnect=True, sim_temperature_C=50.0)
+    ):
+        dut_power_up.diag.waitfor(
             "probe state FAILURE False 'Temperature difference too high: diff_C="
         )
 
-    tentacle.diag_infra_waitfor("probe state OK True")
+    dut_power_up.diag.waitfor("probe state OK True")
 
 
-def test_Tguard_i2c_error(dut_power_up: CtxTestrunHeatguard) -> None:
+def test_Tguard_i2c_error(dut_power_up: TentacleHeatguard) -> None:
     """
     Rationale: Behaviour when a temperature sensor fails
     Simulation: i2c-error Tguard
     Expected transitons: INIT -> OK -> FAILURE -> OK
     """
-    tentacle = dut_power_up.tentacle
-
     # disconnect Tguard
-    with tentacle.inject(Inject(inject_Tguard_disconnect=True)):
-        tentacle.diag_infra_waitfor(
+    with dut_power_up.inject(Inject(inject_Tguard_disconnect=True)):
+        dut_power_up.diag.waitfor(
             "probe state FAILURE False 'I2C failed for sensor Tguard!"
         )
 
-    tentacle.diag_infra_waitfor("probe state OK True")
+    dut_power_up.diag.waitfor("probe state OK True")
 
 
 def test_Tguard_high_eeprom_error_write() -> None:
@@ -47,22 +44,20 @@ def test_Tguard_high_eeprom_error_write() -> None:
     """
 
 
-def test_sw_locked_up_watchdog(dut_power_up: CtxTestrunHeatguard) -> None:
+def test_sw_locked_up_watchdog(dut_power_up: TentacleHeatguard) -> None:
     """
     Rationale: Behaviour when the software fires
     Stimulus: inject endless loop
     Expected transitons: INIT -> OK --(WDT_RESET)-> OK
     Expected result: Watchdog fires
     """
-    tentacle = dut_power_up.tentacle
+    dut_power_up.diag.write("inject endless_loop")
 
-    tentacle.diag_infra_write("inject endless_loop")
-
-    tentacle.diag_infra_waitfor(
+    dut_power_up.diag.waitfor(
         "probe boot WDT_RESET",
         timeout_s=5.0,
     )
-    tentacle.diag_infra_waitfor("probe state OK True 'Initial state after power up'")
+    dut_power_up.diag.waitfor("probe state OK True 'Initial state after power up'")
 
 
 def test_reboot_eeprom_guard_state() -> None:
