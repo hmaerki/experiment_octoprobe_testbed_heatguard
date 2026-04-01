@@ -6,10 +6,6 @@ manifest:
     - name: zephyr
       remote: zephyrproject-rtos
       revision: main
-      import:
-        name-allowlist:
-          - cmsis
-          - hal_rpi_pico
-          - picolibc
+      import: true
   self:
     path: app

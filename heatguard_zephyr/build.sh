@@ -9,8 +9,22 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Use a host-side temp directory as the full west workspace so the
+# container user has write permissions for .west/, build/, etc.
+BUILD_DIR=$(mktemp -d)
+trap 'rm -rf "${BUILD_DIR}"' EXIT
+
+echo "--- Preparing workspace in ${BUILD_DIR} ---"
+mkdir -p "${BUILD_DIR}/app"
+cp "${SCRIPT_DIR}/west.yml"       "${BUILD_DIR}/app/"
+cp "${SCRIPT_DIR}/CMakeLists.txt" "${BUILD_DIR}/app/"
+cp "${SCRIPT_DIR}/prj.conf"       "${BUILD_DIR}/app/"
+cp -a "${SCRIPT_DIR}/src"         "${BUILD_DIR}/app/"
+cp -a "${SCRIPT_DIR}/boards"      "${BUILD_DIR}/app/"
+
 docker run --rm \
-    -v "${SCRIPT_DIR}:/workspace/app" \
+    --user "$(id -u):$(id -g)" \
+    -v "${BUILD_DIR}:/workspace" \
     -w /workspace \
     ghcr.io/zephyrproject-rtos/zephyr-build:main \
     bash -c '
@@ -22,11 +36,10 @@ docker run --rm \
 
         echo "--- Building for rpi_pico ---"
         west build -b rpi_pico app
-
-        echo "--- Copying artefacts ---"
-        cp build/zephyr/zephyr.uf2 app/
-        cp build/zephyr/zephyr.elf app/
     '
+
+cp "${BUILD_DIR}/build/zephyr/zephyr.uf2" "${SCRIPT_DIR}/"
+cp "${BUILD_DIR}/build/zephyr/zephyr.elf" "${SCRIPT_DIR}/"
 
 echo ""
 echo "Build complete!"

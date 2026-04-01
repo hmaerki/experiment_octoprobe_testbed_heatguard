@@ -14,3 +14,5 @@ testbed.lock
 **/fp-info-cache
 kicad/heatguard_v*/production/**
 **/*.bkp
+heatguard_zephyr/zephyr.elf
+heatguard_zephyr/zephyr.uf2
