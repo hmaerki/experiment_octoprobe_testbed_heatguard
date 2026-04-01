@@ -31,7 +31,8 @@ def test_Tguard_i2c_error(dut_power_up: TentacleHeatguard) -> None:
     # disconnect Tguard
     with dut_power_up.inject(Inject(inject_Tguard_disconnect=True)):
         dut_power_up.diag.waitfor(
-            "probe state FAILURE False 'I2C failed for sensor Tguard!"
+            "probe state FAILURE False 'I2C failed for sensor Tguard!",
+            timeout_s=5.0,
         )
 
     dut_power_up.diag.waitfor("probe state OK True")

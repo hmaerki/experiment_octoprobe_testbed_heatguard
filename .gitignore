@@ -18,6 +18,7 @@ kicad/heatguard_v*/production/**
 # Zephyr
 heatguard_zephyr/zephyr.elf
 heatguard_zephyr/zephyr.uf2
+heatguard_zephyr/.build_workspace/
 
 .west/
 bootloader/

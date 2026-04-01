@@ -330,9 +330,8 @@ static void write_state(const char *reason)
 {
 	char msg[256];
 
-	snprintf(msg, sizeof(msg), "probe state %s %d '%s'",
-		 state_names[hg.state], hg.enable, reason);
-	printk("%s\n", msg);
+	snprintf(msg, sizeof(msg), "probe state %s %s '%s'",
+		 state_names[hg.state], hg.enable ? "True" : "False", reason);
 	diag_writeline(msg);
 }
 
@@ -513,17 +512,23 @@ int main(void)
 		float t_guard, t_ref;
 		char eeprom_buf[EEPROM_SIZE_BYTE + 1];
 
+		watchdog_feed();
 		if (i2c_read_temperature(I2C_ADDRESS_TGUARD, &t_guard) < 0) {
 			heatguard_sensor_failed("Tguard");
+			heatguard_update();
 			continue;
 		}
+		watchdog_feed();
 		if (i2c_read_temperature(I2C_ADDRESS_TREF, &t_ref) < 0) {
 			heatguard_sensor_failed("Tref");
+			heatguard_update();
 			continue;
 		}
+		watchdog_feed();
 		if (i2c_read_eeprom(I2C_ADDRESS_EEPROM,
 				    eeprom_buf, sizeof(eeprom_buf)) < 0) {
 			heatguard_sensor_failed("eeprom");
+			heatguard_update();
 			continue;
 		}
 
@@ -542,7 +547,6 @@ int main(void)
 			 (double)t_guard, (double)t_ref, (double)diff,
 			 state_names[hg.state], hg.enable,
 			 (long long)remaining);
-		printk("%s\n", telemetry);
 		diag_writeline(telemetry);
 
 		heatguard_update_temperatures(t_guard, diff);
