@@ -169,6 +169,10 @@ class TentacleHeatguard(TentacleBase):
         return tentacle
 
     @property
+    def is_zephyr(self) -> bool:
+        return self.tentacle_instance.solder_version.endswith("-zephyr")
+
+    @property
     def debugprobe(self) -> TentacleDebugprobe:
         assert isinstance(self._probe, TentacleDebugprobe)
         return self._probe

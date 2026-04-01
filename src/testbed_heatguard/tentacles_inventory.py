@@ -20,7 +20,7 @@ TENTACLES_INVENTORY = (
                 # HeatGuart v0.2
                 "de6528b3cb64-6938",
                 HwVersion.V06,
-                "v1.0",
+                "v1.0-zephyr",
                 tentacle_specs.MCU_HEADGUARD,
             ),
             (

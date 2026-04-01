@@ -1,4 +1,5 @@
 import logging
+import time
 
 from testbed_heatguard.tentacle_spec import Inject, TentacleHeatguard
 
@@ -28,6 +29,10 @@ def test_Tguard_i2c_error(dut_power_up: TentacleHeatguard) -> None:
     Simulation: i2c-error Tguard
     Expected transitons: INIT -> OK -> FAILURE -> OK
     """
+    if dut_power_up.is_zephyr:
+        # Bug in zephyr version
+        time.sleep(1.0)
+
     # disconnect Tguard
     with dut_power_up.inject(Inject(inject_Tguard_disconnect=True)):
         dut_power_up.diag.waitfor(

@@ -42,7 +42,13 @@ def dut_power_up(tentacle: TentacleHeatguard) -> Iterator[TentacleHeatguard]:  #
     """
     assert TESTBED is not None
 
-    tentacle.set_power_dut(on=True, udev=TESTBED.udev)
+    if tentacle.is_zephyr:
+        tentacle.switches.dut = False
+        time.sleep(0.5)
+        tentacle.diag.drain()
+        tentacle.switches.dut = True
+    else:
+        tentacle.set_power_dut(on=True, udev=TESTBED.udev)
 
     tentacle.diag.waitfor("probe state OK True 'Initial state after power up'")
 
@@ -187,7 +193,7 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
     global TESTBED  # pylint: disable=W0603:global-statement
     assert TESTBED is None
-    TESTBED = Testbed.factory()
+    TESTBED = Testbed.factory(powercycle_tentacles=False)
     TESTBED.session_setup()
 
 

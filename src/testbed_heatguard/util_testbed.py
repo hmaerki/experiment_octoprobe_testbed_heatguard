@@ -86,7 +86,7 @@ class Testbed:
             logger.error(e)
 
     @staticmethod
-    def factory(powercycle_tentacles: bool = True) -> Testbed:
+    def factory(powercycle_tentacles: bool) -> Testbed:
         # pylint: disable=import-outside-toplevel
         from octoprobe import lib_tentacle_infra
 
