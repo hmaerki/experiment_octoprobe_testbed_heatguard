@@ -1,7 +1,0 @@
-.west/
-bootloader/
-build/
-dts/
-modules/
-tools/
-zephyr/

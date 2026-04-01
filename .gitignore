@@ -14,5 +14,15 @@ testbed.lock
 **/fp-info-cache
 kicad/heatguard_v*/production/**
 **/*.bkp
+
+# Zephyr
 heatguard_zephyr/zephyr.elf
 heatguard_zephyr/zephyr.uf2
+
+.west/
+bootloader/
+build/
+dts/
+modules/
+tools/
+zephyr/
