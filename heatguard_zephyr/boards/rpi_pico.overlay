@@ -1,7 +1,7 @@
 /*
  * Device-tree overlay for the heatguard application on Raspberry Pi Pico.
  *
- * UART0  – GPIO0 (TX) / GPIO1 (RX)  – 9600 baud diagnostic interface
+ * UART0  – GPIO0 (TX) / GPIO1 (RX)  – 115200 baud diagnostic interface
  * I2C1   – GPIO6 (SDA) / GPIO7 (SCL) – 400 kHz  (LM75B sensors + EEPROM)
  * LEDs   – GPIO26-29 (enable / ok / failure / guard)
  * XIAO   – GPIO16 (green, active-low), GPIO17 (red), GPIO25 (blue)
@@ -20,9 +20,9 @@
 	};
 };
 
-/* Override console UART baud rate to 9600 for the diagnostic interface */
+/* Override console UART baud rate to 115200 for the diagnostic interface */
 &uart0 {
-	current-speed = <9600>;
+	current-speed = <115200>;
 };
 
 &i2c1 {

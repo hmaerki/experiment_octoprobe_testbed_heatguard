@@ -4,7 +4,7 @@
  * Target: Raspberry Pi Pico (RP2040) / XIAO RP2040
  *
  * Peripherals
- *   UART0  9600 baud  GPIO0/1  – diagnostic / stimulus interface
+ *   UART0  115200 baud GPIO0/1  – diagnostic / stimulus interface
  *   I2C1   400 kHz    GPIO6/7  – LM75B temperature sensors + EEPROM
  *   GPIO26-29                  – status LEDs (enable / ok / failure / guard)
  *   GPIO16,17,25               – XIAO onboard LEDs (active-low)
@@ -534,11 +534,16 @@ int main(void)
 			remaining = -1;
 		}
 
-		printk("Tguard=%.3fC Tref=%.3fC diff=%.3f "
-		       "state=%s enable=%d guard_remaining_ms=%lld\n",
-		       (double)t_guard, (double)t_ref, (double)diff,
-		       state_names[hg.state], hg.enable,
-		       (long long)remaining);
+		char telemetry[256];
+
+		snprintf(telemetry, sizeof(telemetry),
+			 "Tguard=%.3fC Tref=%.3fC diff=%.3f "
+			 "state=%s enable=%d guard_remaining_ms=%lld",
+			 (double)t_guard, (double)t_ref, (double)diff,
+			 state_names[hg.state], hg.enable,
+			 (long long)remaining);
+		printk("%s\n", telemetry);
+		diag_writeline(telemetry);
 
 		heatguard_update_temperatures(t_guard, diff);
 	}

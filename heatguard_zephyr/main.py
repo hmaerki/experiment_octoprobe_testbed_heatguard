@@ -87,7 +87,7 @@ class Diag:
     def __init__(self) -> None:
         self._uart = machine.UART(
             0,
-            baudrate=9600,
+            baudrate=115200,
             tx=machine.Pin("GPIO0"),
             rx=machine.Pin("GPIO1"),
             timeout=100,
@@ -96,9 +96,11 @@ class Diag:
     def readline(self) -> str | None:
         if self._uart.any() == 0:
             return None
-        return self._uart.readline().decode("utf-8", "replace").strip()
+        line = self._uart.readline()
+        assert isinstance(line, bytes)
+        return line.decode("utf-8", "replace").strip()
 
-    def writeline(self, line) -> None:
+    def writeline(self, line: str) -> None:
         self._uart.write(line + "\n")
 
     def ping_forever(self) -> None:
@@ -124,6 +126,7 @@ class I2C:
         """
         print("Scanning I2C bus...")
         devices = self._i2c.scan()
+        assert isinstance(devices, list)
 
         if len(devices) == 0:
             print("No I2C devices found!")
@@ -141,6 +144,7 @@ class I2C:
         """
         # Read 2 bytes from temperature register
         data = self._i2c.readfrom_mem(addr, self.TEMP_REG, 2)
+        assert isinstance(data, bytes)
 
         # Convert to temperature (11-bit resolution)
         # Combine the two bytes and shift right by 5 bits
@@ -178,6 +182,7 @@ class I2C:
         EEPROM_SIZE_BYTE = 0x200
         "2 Kbit = 0x800 bits = 0x200 bytes"
         data = self._i2c.readfrom_mem(addr, EEPROM_START_BYTE, EEPROM_SIZE_BYTE)
+        assert isinstance(data, bytes)
 
         pos = data.find(b"\xff")
         if pos >= 0:
@@ -230,7 +235,7 @@ class HeatGuardState:
         self.last_reason: str = "Initial state after power up"
         self.guard_end_ms: int = time.ticks_ms()  # type: ignore
 
-    def _guard_end_reset(self):
+    def _guard_end_reset(self) -> None:
         self.guard_end_ms: int = time.ticks_add(time.ticks_ms(), self.GUARD_RECOVERY_MS)  # type: ignore
 
     @property
@@ -239,7 +244,7 @@ class HeatGuardState:
 
     def sensor_failed(self, sensor: str) -> None:
         self._guard_end_reset()
-        if self.state == (self.STATE_INIT, self.STATE_GUARD):
+        if self.state in (self.STATE_INIT, self.STATE_GUARD):
             return
         self.last_reason = f"I2C failed for sensor {sensor}!"
         self.state = self.STATE_FAILURE
@@ -371,6 +376,7 @@ def main() -> None:
             f"guard_remaining_ms={max(-1, heatguard.guard_remaining_ms)}",
         ]
         print(" ".join(elements))
+        diag.writeline(" ".join(elements))
         heatguard.update_temperatures(
             temperature_Tguard_C=temperature_Tguard_C,
             diff_C=diff_C,
