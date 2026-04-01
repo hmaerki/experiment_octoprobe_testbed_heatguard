@@ -19,6 +19,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/drivers/hwinfo.h>
+#include <hardware/structs/watchdog.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -96,18 +97,27 @@ static int  uart_rx_pos;
 
 static const char *get_boot_cause(void)
 {
+	/*
+	 * The Zephyr hwinfo driver for RP2040 does not map watchdog resets
+	 * to RESET_WATCHDOG (only RP2350 does).  On RP2040 a WDT reset
+	 * triggers a PSM restart which the driver reports as RESET_DEBUG.
+	 *
+	 * Use the RP2040 watchdog reason register directly: bit 0 (TIMER)
+	 * is set after a watchdog timeout, bit 1 (FORCE) after a forced reset.
+	 */
+	if (watchdog_hw->reason & (WATCHDOG_REASON_TIMER_BITS |
+				   WATCHDOG_REASON_FORCE_BITS)) {
+		return "WDT_RESET";
+	}
+
 	uint32_t cause;
 
 	if (hwinfo_get_reset_cause(&cause) < 0) {
 		return "UNKNOWN";
 	}
-	hwinfo_clear_reset_cause();
 
 	if (cause & RESET_POR) {
 		return "PWRON_RESET";
-	}
-	if (cause & RESET_WATCHDOG) {
-		return "WDT_RESET";
 	}
 	return "UNKNOWN";
 }
@@ -504,27 +514,26 @@ int main(void)
 	while (1) {
 		handle_diag();
 		heatguard_update();
+
 		watchdog_feed();
 		k_msleep(1000);
+		watchdog_feed();
 
 		gpio_pin_toggle(gpio0_dev, LED_XIAO_BLUE_PIN);
 
 		float t_guard, t_ref;
 		char eeprom_buf[EEPROM_SIZE_BYTE + 1];
 
-		watchdog_feed();
 		if (i2c_read_temperature(I2C_ADDRESS_TGUARD, &t_guard) < 0) {
 			heatguard_sensor_failed("Tguard");
 			heatguard_update();
 			continue;
 		}
-		watchdog_feed();
 		if (i2c_read_temperature(I2C_ADDRESS_TREF, &t_ref) < 0) {
 			heatguard_sensor_failed("Tref");
 			heatguard_update();
 			continue;
 		}
-		watchdog_feed();
 		if (i2c_read_eeprom(I2C_ADDRESS_EEPROM,
 				    eeprom_buf, sizeof(eeprom_buf)) < 0) {
 			heatguard_sensor_failed("eeprom");
