@@ -13,25 +13,25 @@ Diagnose interface - UART
 .. mermaid::
 
    sequenceDiagram
-      Pytest->>+PICO_INFRA: mpremote 'inject xx'
-      PICO_INFRA->>-DUT: uart 'inject xx'
-      DUT-->>+PICO_INFRA: uart 'probe ab'
-      DUT-->>+PICO_INFRA: uart 'probe cd'
 
+      participant Pytest
+      participant Diag@{ "type" : "queue" }
+      participant PICO_PROBE
+      participant DUT
 
-      Pytest->>+PICO_INFRA: mpremote 'get_lines()'
-      PICO_INFRA-->>-Pytest: lines
+      Pytest->>DUT: usb-uart 'inject xx'
 
-The DUT may send to the UART any time.
+      DUT->>+Diag: uart 'probe ab'
 
-The PICO_INFRA uses a interrupt handler to receive from the UART. This interrupt handler is active even wehn PICO_INFRA is in REPL mode and is waiting for commands from mpremote from pytest. PICO_INFRA stores the lines in a buffer.
+      DUT->>Diag: uart 'probe cd'
 
-pytest uses `mpremote get_lines()` to poll for lines in the buffer.
+      Pytest->>Diag: 'get_lines()'
 
-pytest maintains two lists
+The mcu PICO_PROBE with the firmware `debugprobe` is used as a USB-CDC and connects to the uart on the DUT.
 
-   * diag_lines_unprocessed
-   * diag_lines_processed
+In `testbed_heatguard` the uart is handled by the class `Diag`. A thread listens from input from the DUT and stores it in a list of lines.
+
+pytest uses `diag.get_lines()` to poll for lines in the buffer.
 
 This is how one may wait for a expected line:
 
