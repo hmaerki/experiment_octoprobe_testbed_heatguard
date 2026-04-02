@@ -6,6 +6,7 @@ import logging
 import pathlib
 import typing
 
+from octoprobe import util_mcu_pico
 from octoprobe.lib_mpremote import ExceptionCmdFailed
 from octoprobe.lib_tentacle import TentacleBase
 from octoprobe.lib_tentacle_debugprobe import TentacleDebugprobe
@@ -16,7 +17,11 @@ from octoprobe.util_firmware_spec import FirmwareDownloadSpec
 from octoprobe.util_pytest.util_func_logger import func_logger
 from octoprobe.util_pyudev import UdevPoller
 
-from .constants import TAG_BOARD, TAG_BUILD_VARIANTS
+from .constants import (
+    FILENAME_DUT_MAIN,
+    TAG_BOARD,
+    TAG_BUILD_VARIANTS,
+)
 from .util_diag import Diag
 
 logger = logging.getLogger(__file__)
@@ -119,7 +124,7 @@ class Inject:
             )
 
 
-class TentacleHeatguard(TentacleBase):
+class TentacleHeatguard(TentacleBase):  # pylint: disable=too-many-public-methods
     def __init__(
         self,
         tentacle_instance: TentacleInstance,
@@ -194,6 +199,42 @@ class TentacleHeatguard(TentacleBase):
         assert isinstance(tentacle_spec_base, TentacleSpecHeatguard)
         return tentacle_spec_base
 
+    def copy_micropython_main(self, restart_dut: bool) -> None:
+        src = FILENAME_DUT_MAIN
+        logger.info(f"{self.dut.label}: Copy {src}")
+        self.dut.mp_remote.cp(src=src, dest=":", multiple=False)
+        if restart_dut:
+            # Restart main
+            self.dut.mp_remote.exec_raw(
+                cmd="import machine; machine.reset()",
+                follow=False,
+            )
+
+    def flash_dut_zephyr(
+        self,
+        udev: UdevPoller,
+        firmware: pathlib.Path,
+        directory_logs: pathlib.Path,
+    ) -> None:
+        assert self.dut is not None
+        assert self.is_zephyr
+
+        assert isinstance(udev, UdevPoller)
+        assert isinstance(firmware, pathlib.Path)
+        assert isinstance(directory_logs, pathlib.Path)
+
+        if not firmware.is_file():
+            logger.error(f"Firmware does not exist: {firmware}")
+            return
+
+        programmer = util_mcu_pico.DutProgrammerPicotool()
+        event = programmer.enter_boot_mode(tentacle=self, udev=udev)
+        util_mcu_pico.picotool_flash_micropython(
+            event=event,
+            directory_logs=directory_logs,
+            filename_firmware=firmware,
+        )
+
     @func_logger
     def set_power_dut(
         self,
@@ -230,7 +271,7 @@ class TentacleHeatguard(TentacleBase):
         Return True if the file has been copied and the dut must be powercycled.
         Return False if the file is already there and equal. No restart is needed.
         """
-        src = DIRECTORY_OF_THIS_FILE / "mp_dut_main.py"
+        src = FILENAME_DUT_MAIN
         dest = ":main.py"
         if not self.dut.mp_remote.file_equal(src=src, dest=dest):
             # Local file 'src' has changed: copy to device

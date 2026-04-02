@@ -177,6 +177,7 @@ keep-runtime-typing = true
 [tool.pylint."MESSAGES CONTROL"]
 disable = '''
     broad-exception-caught,
+    cyclic-import,
     invalid-name,
     line-too-long,
     logging-fstring-interpolation,

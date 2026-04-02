@@ -1,24 +1,5 @@
 """
-op power --on dut
-
-mpremote devs | head -n 4
-
-mpremote a1 run src/testbed_heatguard/mp_dut_main.py
-
-# Copy the source code
-mpremote a1 cp src/testbed_heatguard/mp_dut_main.py :main.py
-
-# Resets the DUT and main.py will restart
-mpremote a1 reset
-
-# Allow to read stdout without interrupting the running program
-# Exit with <ctrl-]> to leave the program running
-# Exit with <ctrl-c> to stop the program and enter repl
-mpremote a1 resume
-
-# All in one
-# Exit with <ctrl-C>
-mpremote a1 cp src/testbed_heatguard/mp_dut_main.py :main.py ; mpremote a1 exec 'import main'
+This is the micropython implementation of 'heatguard'.
 """
 
 import errno

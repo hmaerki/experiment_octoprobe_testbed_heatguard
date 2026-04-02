@@ -1,7 +1,4 @@
-import _thread  # noqa: F401
-import time  # noqa: F401
-
-import machine  # type: ignore
+import machine  # type: ignore # pylint: disable=import-error
 
 I2C_ADDRESS_Tguard = 0x48
 I2C_ADDRESS_Tref = 0x49
