@@ -6,7 +6,11 @@ import typing
 
 import typer
 from mpremote.transport_serial import TransportError
-from octoprobe.scripts.op import iter_usb_tentacles
+from octoprobe.scripts.op import (
+    PoweronAnnotation,
+    SerialsAnnotation,
+    iter_usb_tentacles,
+)
 from octoprobe.scripts.op_logging import init_logging
 from octoprobe.util_baseclasses import OctoprobeAppExitException
 from octoprobe.util_pyudev import UdevPoller
@@ -63,10 +67,16 @@ def dut_copy_main() -> None:
 
 
 @app.command(help="Flash micropython to DUT.")
-def dut_flash() -> None:
+def dut_flash(
+    firmware_url: str = str(
+        constants.DIRECTORY_REPO / "heatguard_zephyr" / "zephyr.uf2"
+    ),
+    serials: SerialsAnnotation = None,
+    poweron: PoweronAnnotation = False,
+) -> None:
     with UdevPoller() as udev:
         poweron = True
-        for usb_tentacle in iter_usb_tentacles(poweron=poweron, serials=None):
+        for usb_tentacle in iter_usb_tentacles(poweron=poweron, serials=serials):
             tentacle = tentacle_spec.TentacleHeatguard.factory_usb_tentacle(
                 usb_tentacle=usb_tentacle
             )
@@ -77,18 +87,17 @@ def dut_flash() -> None:
 
             directory_logs = pathlib.Path("/tmp/heatguard")
             if tentacle.is_zephyr:
-                firmware = constants.DIRECTORY_REPO / "heatguard_zephyr" / "zephyr.uf2"
-                logger.info(f"{tentacle.dut.label}: Flashing Zephyr: {firmware}")
-                tentacle.flash_dut_zephyr(
+                logger.info(f"{tentacle.dut.label}: Flashing Zephyr: {firmware_url}")
+                tentacle.flash_dut_picotool(
                     udev=udev,
-                    firmware=firmware,
+                    firmware_url=firmware_url,
                     directory_logs=directory_logs,
                 )
             else:
                 logger.info(
                     f"{tentacle.dut.label}: Flashing Micropython: {tentacle.tentacle_state.firmware_spec.filename}"
                 )
-                tentacle.flash_dut(
+                tentacle.flash_dut_micropython(
                     udev=udev,
                     firmware_spec=tentacle.tentacle_state.firmware_spec,
                     directory_logs=directory_logs,

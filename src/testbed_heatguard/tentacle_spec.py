@@ -6,7 +6,6 @@ import logging
 import pathlib
 import typing
 
-from octoprobe import util_mcu_pico
 from octoprobe.lib_mpremote import ExceptionCmdFailed
 from octoprobe.lib_tentacle import TentacleBase
 from octoprobe.lib_tentacle_debugprobe import TentacleDebugprobe
@@ -209,31 +208,6 @@ class TentacleHeatguard(TentacleBase):  # pylint: disable=too-many-public-method
                 cmd="import machine; machine.reset()",
                 follow=False,
             )
-
-    def flash_dut_zephyr(
-        self,
-        udev: UdevPoller,
-        firmware: pathlib.Path,
-        directory_logs: pathlib.Path,
-    ) -> None:
-        assert self.dut is not None
-        assert self.is_zephyr
-
-        assert isinstance(udev, UdevPoller)
-        assert isinstance(firmware, pathlib.Path)
-        assert isinstance(directory_logs, pathlib.Path)
-
-        if not firmware.is_file():
-            logger.error(f"Firmware does not exist: {firmware}")
-            return
-
-        programmer = util_mcu_pico.DutProgrammerPicotool()
-        event = programmer.enter_boot_mode(tentacle=self, udev=udev)
-        util_mcu_pico.picotool_flash_micropython(
-            event=event,
-            directory_logs=directory_logs,
-            filename_firmware=firmware,
-        )
 
     @func_logger
     def set_power_dut(

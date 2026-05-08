@@ -68,7 +68,7 @@ _INDEX_TOP_TEMPLATE = jinja2.Template("""
 .. Restructured text comment: IGNORE_SECTION_CHECK
 
 {{ repo.name }}
-====================
+====================================
 
 {% if repo.automodule -%}
 .. automodule:: {{ repo.directory }}
