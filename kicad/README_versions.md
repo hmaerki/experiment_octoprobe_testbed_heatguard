@@ -1,5 +1,11 @@
 # Octoprobe Heatguard
 
+## History v0.2 -> v0.3
+
+* PCB/Schematics: Rename stimuly -> stimulus
+* PCB silkscreen: Open Hardware logo
+* PCB silkscreen: Insert missing text `Controller` / `testing not required`
+* PCB silkscreen: Switch GPIO_PROBE_4 and GPIO_PROBE_4
 
 ## History v0.1 -> v0.2
 
