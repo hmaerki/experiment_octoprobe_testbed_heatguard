@@ -2,6 +2,7 @@
 
 ## History v0.2 -> v0.3
 
+* PCB/Schematics: Now using relays in favor of GPIO
 * PCB/Schematics: Rename stimuly -> stimulus
 * PCB silkscreen: Open Hardware logo
 * PCB silkscreen: Insert missing text `Controller` / `testing not required`
