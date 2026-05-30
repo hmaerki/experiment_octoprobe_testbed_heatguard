@@ -1,7 +1,7 @@
 Heatguard Hardware
 ===========================
 
-:download:`Schematics v0.2 (Pdf) <../../kicad/heatguard_v0.2/production_v0.2/schematics_heatguard_v0.2.pdf>`.
+:download:`Schematics v0.3 (Pdf) <../../kicad/heatguard_v0.3/production_v0.3/schematics_heatguard_v0.3.pdf>`.
 
 .. image:: images/pcb_top_3D.png
    :width: 500px
