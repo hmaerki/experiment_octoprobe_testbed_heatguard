@@ -6,6 +6,7 @@
 * PCB silkscreen: Open Hardware logo
 * PCB silkscreen: Insert missing text `Controller` / `testing not required`
 * PCB silkscreen: Switch GPIO_PROBE_4 and GPIO_PROBE_4
+* PCB: XIAO rp2040: Replace SMD with THT
 
 ## History v0.1 -> v0.2
 
