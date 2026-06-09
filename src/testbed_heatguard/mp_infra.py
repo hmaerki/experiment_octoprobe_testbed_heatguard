@@ -51,21 +51,6 @@ class Diag:
         self._uart.write(line + "\n")
 
 
-class Inject:
-    def __init__(self) -> None:
-        self.Tref_disconnect = machine.Pin("GPIO10", machine.Pin.OUT)
-        self.EEPROM_disconnect = machine.Pin("GPIO11", machine.Pin.OUT)
-        self.Tguard_disconnect = machine.Pin("GPIO14", machine.Pin.OUT)
-        self.T_limit = machine.Pin("GPIO15", machine.Pin.OPEN_DRAIN)
-        self.reset()
-
-    def reset(self) -> None:
-        self.Tref_disconnect.value(0)
-        self.EEPROM_disconnect.value(0)
-        self.Tguard_disconnect.value(0)
-        self.T_limit.value(1)
-
-
 class SimulationI2C:
     EEPROM_START_BYTE = 0x00
     EEPROM_SIZE_BYTE = 0x200
@@ -130,61 +115,7 @@ class SimulationI2C:
 
 
 # diag = Diag()
-inject = Inject()
 simulation_i2c = SimulationI2C()
 
-
-def set_inject(dict_inject: dict[str, bool | float | None]) -> None:
-    """
-    Example dict_inject:
-        {
-            "inject_Tguard_disconnect": False,
-            "inject_Tref_disconnect": True,
-            "inject_EEPROM_disconnect": False,
-            "inject_T_limit": False,
-            "sim_temperature_C": 82.25,
-            "sim_EEPROM_data": None,
-        }
-
-    There are many invalid combinations of 'dict_inject'.
-    For example {'inject_Tref_disconnect': True, 'sim_temperature_C': 82,5} is valid.
-    For example {'inject_Tref_disconnect': True, 'sim_EEPROM_data': 'data'} is conflicting.
-    It is assumed, that we have been passed meaningful values.
-    """
-    inject.Tguard_disconnect.value(dict_inject["inject_Tguard_disconnect"])
-    inject.Tref_disconnect.value(dict_inject["inject_Tref_disconnect"])
-    inject.EEPROM_disconnect.value(dict_inject["inject_EEPROM_disconnect"])
-    inject.T_limit.value(dict_inject["inject_T_limit"])
-    sim_temperature_C = dict_inject["sim_temperature_C"]
-    sim_EEPROM_data = dict_inject["sim_EEPROM_data"]
-    if sim_temperature_C is None:
-        simulation_i2c.reset()
-    if sim_EEPROM_data is None:
-        simulation_i2c.reset()
-    if sim_temperature_C is not None:
-        addr = (
-            I2C_ADDRESS_Tguard if inject.Tguard_disconnect.value() else I2C_ADDRESS_Tref
-        )
-        simulation_i2c.enable(addr=addr)
-        simulation_i2c.set_temperature_C(sim_temperature_C)
-        return
-    if sim_EEPROM_data is not None:
-        assert isinstance(sim_EEPROM_data, str)
-        simulation_i2c.enable(addr=I2C_ADDRESS_EEPROM)
-        simulation_i2c.set_EEPROM(sim_EEPROM_data)
-        return
-
-
-# Reset
-set_inject(
-    dict_inject={
-        "inject_Tguard_disconnect": False,
-        "inject_Tref_disconnect": False,
-        "inject_EEPROM_disconnect": False,
-        "inject_T_limit": False,
-        "sim_temperature_C": None,
-        "sim_EEPROM_data": None,
-    }
-)
 
 print("[RESULT]success")

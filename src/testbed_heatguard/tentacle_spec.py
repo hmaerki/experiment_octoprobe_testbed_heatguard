@@ -275,8 +275,40 @@ class TentacleHeatguard(TentacleBase):  # pylint: disable=too-many-public-method
 
     @func_logger
     def set_inject(self, inject: Inject) -> None:
-        dict_inject = dataclasses.asdict(inject)
-        self.infra.mp_remote.read_None(f"set_inject({dict_inject!r})")
+        """
+        There are many invalid combinations of 'inject'.
+        For example inject_Tref_disconnect=True, sim_temperature_C=82,5 is valid.
+        For example inject_Tref_disconnect=True, sim_EEPROM_data: 'data' is conflicting.
+        It is assumed, that we have been passed meaningful values.
+        """
+        self.switches.relay4 = inject.inject_Tguard_disconnect
+        self.switches.relay3 = inject.inject_Tref_disconnect
+        self.switches.relay5 = inject.inject_EEPROM_disconnect
+        self.switches.relay6 = inject.inject_T_limit
+
+        if (inject.sim_temperature_C is None) or (inject.sim_EEPROM_data is None):
+            self.infra.mp_remote.read_None("simulation_i2c.reset()")
+
+        if inject.sim_temperature_C is not None:
+            if inject.inject_Tguard_disconnect:
+                cmd = "simulation_i2c.enable(addr=I2C_ADDRESS_Tguard)"
+            else:
+                cmd = "simulation_i2c.enable(addr=I2C_ADDRESS_Tref)"
+            self.infra.mp_remote.read_None(cmd)
+            self.infra.mp_remote.read_None(
+                f"simulation_i2c.set_temperature_C({inject.sim_temperature_C})"
+            )
+            return
+
+        if inject.sim_EEPROM_data is not None:
+            assert isinstance(inject.sim_EEPROM_data, str)
+            self.infra.mp_remote.read_None(
+                "simulation_i2c.enable(addr=I2C_ADDRESS_EEPROM)"
+            )
+            self.infra.mp_remote.read_None(
+                f"simulation_i2c.set_EEPROM({repr(inject.sim_EEPROM_data)})"
+            )
+            return
 
     @func_logger
     @contextlib.contextmanager

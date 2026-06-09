@@ -32,6 +32,11 @@
         "[vt100]": {
             "editor.wordWrap": "off"
         },
+        "pylint.path": [
+            "~/.env/python",
+            "-m",
+            "pylint"
+        ],
         "python.testing.pytestArgs": [
             "-v",
             "-s",

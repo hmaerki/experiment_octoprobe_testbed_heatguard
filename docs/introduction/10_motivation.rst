@@ -7,8 +7,8 @@ Motivation
 
   The hardware cost of the the `tentacle` PCB and the `heatguard` PCB are below EUR20. This makes it predestinated to learn about octoprobe and evaluate the concepts.
 
-.. image:: images/pcb_soldered.png
-   :height: 300px
+.. image:: images/pcb_soldered_side.jpg
+   :width: 600px
    :align: center
 
 Szenario

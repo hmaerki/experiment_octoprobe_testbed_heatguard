@@ -1,8 +1,8 @@
 Introduction
 ============
 
-.. image:: images/pcb_soldered.png
-   :height: 500px
+.. image:: images/pcb_soldered_side.jpg
+   :width: 600px
    :align: center
 
 .. toctree::
