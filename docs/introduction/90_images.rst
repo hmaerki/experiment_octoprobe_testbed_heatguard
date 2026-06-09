@@ -14,5 +14,5 @@ Images
    :align: center
 
 .. image:: images/testconcept.drawio.png
-   :height: 500px
+   :width: 600px
    :align: center
