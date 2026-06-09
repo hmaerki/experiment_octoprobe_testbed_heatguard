@@ -16,36 +16,42 @@ To understand the hardware, just look at the silkscreen carefully. Note that I u
   The `Test Connector` would be typically implemented using flying probes or a solder pads as this requires minimal space on the PCB and no additional cost.
 
 
-Assignements of the 8 pin testconnector
--------------------------------------------
+Assignements of the 8 pin testconnector and the relays
+--------------------------------------------------------
 
 .. list-table::
    :header-rows: 1
 
-   * - PICO_INFRA
+   * - Tentacle
      - DUT - heatguard
      - Signal
-   * - 10
+   * - relay 1
+     - Boot button
+     - Boot mode
+   * - relay 2
+     - pin 10, gpio 4
+     - watchdog_disable
+   * - relay 3
      - \-
      - inject_Tref_disconnect
-   * - 11
-     - \-
-     - inject_EEPROM_disconnect
-   * - 12
-     - 6
-     - SDA
-   * - 13
-     - 7
-     - SCL
-   * - 14
+   * - relay 4
      - \-
      - inject_Tguard_disconnect
-   * - 15
-     - 2
+   * - relay 5 
+     - \-
+     - inject_EEPROM_disconnect
+   * - relay 6
+     - pin 9, gpio 2
      - inject_T_limit (overwrite Tguard over temperature output)
-   * - 16 (tx)
-     - 1
-     - RX
-   * - 17 (rx)
-     - 0
-     - TX
+   * - gpio 12
+     - pin 5, gpio 6
+     - SDA
+   * - gpio 13
+     - pin 6, gpio 7
+     - SCL
+   * - GPIO_PROBE_4
+     - pin 8, gpio 1
+     - DIAG_RX
+   * - GPIO_PROBE_5
+     - pin 7, gpio 0
+     - DIAG_TX
