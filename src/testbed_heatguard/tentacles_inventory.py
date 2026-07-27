@@ -6,7 +6,8 @@ from testbed_heatguard.constants import TESTBED_NAME
 from . import tentacle_specs
 
 TENTACLES_INVENTORY = (
-    TentaclesCollector(testbed_name=TESTBED_NAME).add_testbed_instance(
+    TentaclesCollector(testbed_name=TESTBED_NAME)
+    .add_testbed_instance(
         testbed_instance="ch_hans_1",
         tentacles=[
             (
@@ -24,10 +25,29 @@ TENTACLES_INVENTORY = (
                 tentacle_specs.MCU_HEADGUARD,
             ),
             (
+                # HeatGuart v0.3
+                "de655035873b-7721",
+                HwVersion.V07,
+                "v1.0",
+                tentacle_specs.MCU_HEADGUARD,
+            ),
+            (
                 # Demo Teqable
                 # HeatGuart v0.1
                 "de6528b3cb4a-4b35",
                 HwVersion.V06,
+                "v1.0",
+                tentacle_specs.MCU_HEADGUARD,
+            ),
+        ],
+    )
+    .add_testbed_instance(
+        testbed_instance="nl_jan_1",
+        tentacles=[
+            (
+                # HeatGuart v0.3
+                "de6550358721-4621",
+                HwVersion.V07,
                 "v1.0",
                 tentacle_specs.MCU_HEADGUARD,
             ),
